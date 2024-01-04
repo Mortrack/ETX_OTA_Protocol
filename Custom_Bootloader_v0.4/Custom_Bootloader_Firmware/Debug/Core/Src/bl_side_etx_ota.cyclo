@@ -1,0 +1,7 @@
+../Core/Src/bl_side_etx_ota.c:413:16:init_firmware_update_module	12
+../Core/Src/bl_side_etx_ota.c:564:16:firmware_image_download_and_install	11
+../Core/Src/bl_side_etx_ota.c:655:23:etx_ota_receive_packet	24
+../Core/Src/bl_side_etx_ota.c:863:23:etx_ota_process_data	25
+../Core/Src/bl_side_etx_ota.c:1114:23:etx_ota_send_resp	3
+../Core/Src/bl_side_etx_ota.c:1150:23:write_data_to_flash_app	10
+../Core/Src/bl_side_etx_ota.c:1277:23:HAL_ret_handler	4

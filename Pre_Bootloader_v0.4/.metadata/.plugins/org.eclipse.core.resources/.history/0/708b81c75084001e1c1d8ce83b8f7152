@@ -1,0 +1,32 @@
+/** @addtogroup bl_side_firmware_update
+ * @{
+ */
+
+/**@file
+ *
+ * @defgroup app_etx_ota_config Application ETX OTA Protocol Configuration File
+ * @{
+ *
+ * @brief   This file should contain all the Application ETX OTA Protocol Configurations made by the user/implementor.
+ *
+ * @note    It is highly suggested not to directly edit the Configurations Settings defined in this file. Instead of
+ *          doing that whenever requiring different Configuration Settings, it is suggested to do that instead in an
+ *          additional header file named as "app_etx_ota_config.h" whose File Path should be located as a sibbling of
+ *          this @ref etx_ota_config header file. However, to enable the use of that additional header file, you will
+ *          also need to change the @ref ENABLE_APP_ETX_OTA_CONFIG define, that is located at @ref etx_ota_config, to a
+ *          value of 1.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	October 17, 2023.
+ */
+
+#ifndef APP_ETX_OTA_CONFIG
+#define APP_ETX_OTA_CONFIG
+
+//#define ETX_OTA_VERBOSE 			        (1)   	        /**< @brief Flag value used to enable the compiler to take into account the code of the @ref etx_ota_protocol_host library that displays detailed information in the terminal window about the processes made in this library with a \c 1 . Otherwise, a \c 0 for only displaying minimum details of general processes only. */
+
+#endif /* APP_ETX_OTA_CONFIG_H_ */
+
+/** @} */
+
+/** @} */

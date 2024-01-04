@@ -1,0 +1,1044 @@
+/** @addtogroup hm10_ble
+ * @{
+ */
+
+#include "hm10_ble_driver.h"
+#include <string.h>	// Library from which "memset()" and "memcpy()" are located at.
+
+#define HM10_MAX_AT_COMMAND_SIZE							(19)   /**< @brief Total maximum bytes in a Tx/Rx AT Command of the HM-10 BLE Device. */
+#define HM10_MAX_PACKET_SIZE								(19)   /**< @brief Total maximum bytes in a Tx/Rx package/Payload to/from the HM-10 BLE Device. @note The documentation of the HM-10 BLE Device states that there is a restriction of sending data from one HM-10 BLE Device to another, whenever they establish a connection, of 19 bytes per request. Therefore, to manage things homogeneously, both the transmit and receive requests will be handled by this @ref hm10_ble with the same size limit of 19 bytes. */
+#define HM10_TEST_CMD_SIZE								    (2)    /**< @brief	Length in bytes of a Test Command in the HM-10 BLE device. */
+#define HM10_RESET_CMD_SIZE								    (8)    /**< @brief	Length in bytes of a Reset Command in the HM-10 BLE device. */
+#define HM10_SET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME  (7)    /**< @brief	Length in bytes of a Set Name Response from the HM-10 BLE device but without considering the length of the requested name. */
+#define HM10_GET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME	(8)    /**< @brief	Length in bytes of a Get Name Response from the HM-10 BLE device but without considering the length of the requested name. */
+#define HM10_GET_NAME_CMD_SIZE							    (8)    /**< @brief	Length in bytes of a Get Name Command in the HM-10 BLE device. */
+#define HM10_SET_ROLE_CMD_SIZE							    (8)    /**< @brief	Length in bytes of a Set Role Command in the HM-10 BLE device. */
+#define HM10_GET_ROLE_CMD_SIZE							    (8)    /**< @brief	Length in bytes of a Get Role Command in the HM-10 BLE device. */
+#define HM10_ROLE_RESPONSE_SIZE							    (8)    /**< @brief	Length in bytes of either a Get or a Set Role Command's Response in the HM-10 BLE device. */
+#define HM10_SET_PIN_CMD_SIZE								(13)   /**< @brief	Length in bytes of the Set Pin Command of a HM-10 BLE device. */
+#define HM10_GET_PIN_CMD_SIZE								(8)    /**< @brief	Length in bytes of the Get Pin Command of a HM-10 BLE device. */
+#define HM10_PIN_RESPONSE_SIZE							    (13)   /**< @brief	Length in bytes of either a Get or a Set Pin Command's Response in the HM-10 BLE device. */
+#define HM10_SET_TYPE_CMD_SIZE							    (8)    /**< @brief	Length in bytes of the Set Type Command of a HM-10 BLE device. */
+#define HM10_GET_TYPE_CMD_SIZE							    (8)    /**< @brief	Length in bytes of the Get Type Command of a HM-10 BLE device. */
+#define HM10_TYPE_RESPONSE_SIZE							    (8)    /**< @brief	Length in bytes of either a Get or a Set Type Command's Response in the HM-10 BLE device. */
+#define HM10_RESET_RESPONSE_SIZE							(8)    /**< @brief	Length in bytes of a Reset Response from the HM-10 BLE device. */
+#define HM10_OK_RESPONSE_SIZE								(2)    /**< @brief	Length in bytes of a OK Response from the HM-10 BLE device. */
+
+static UART_HandleTypeDef *p_huart;												                                                     /**< @brief Pointer to the UART Handle Structure of the UART that will be used in this @ref hm10_ble to communicate with the HM-10 BLE device. @details This pointer's value is defined in the @ref init_hm10_module function. */
+static uint8_t TxRx_Buffer[HM10_MAX_AT_COMMAND_SIZE];					                                                             /**< @brief Global buffer that will be used by our MCU/MPU to hold the whole data of a received response or a request to be send from/to the HM-10 BLE Device. */
+static uint8_t HM10_Set_Name_resp_without_name_value[] = {'O', 'K', '+', 'S', 'e', 't', ':'};	         /**< @brief Pointer to the equivalent data of the BLE Name Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Set Name request to the HM-10 BLE device is processed successfully. */
+static uint8_t HM10_Get_Name_resp_without_name_value[] = {'O', 'K', '+', 'N', 'A', 'M', 'E', ':'};    /**< @brief Pointer to the equivalent data of a BLE Name Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Get Name request to the HM-10 BLE device is processed successfully. */
+static uint8_t *HM10_Set_Role_resp_without_role_value = HM10_Set_Name_resp_without_name_value;	                                     /**< @brief Pointer to the equivalent data of a BLE Role Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Set Role request to the HM-10 BLE device is processed successfully. */
+static uint8_t HM10_Get_Role_resp_without_role_value[] = {'O', 'K', '+', 'G', 'e', 't', ':'};	         /**< @brief Pointer to the equivalent data of a BLE Role Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Get Role request to the HM-10 BLE device is processed successfully. */
+static uint8_t *HM10_Set_Pin_resp_without_pin_value = HM10_Set_Name_resp_without_name_value;			                             /**< @brief Pointer to the equivalent data of a BLE Pin Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Set Pin request to the HM-10 BLE device is processed successfully. */
+static uint8_t *HM10_Get_Pin_resp_without_pin_value = HM10_Get_Role_resp_without_role_value;			                             /**< @brief Pointer to the equivalent data of a BLE Pin Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Get Pin request to the HM-10 BLE device is processed successfully. */
+static uint8_t *HM10_Set_Type_resp_without_type_value = HM10_Set_Name_resp_without_name_value;	                                     /**< @brief Pointer to the equivalent data of a BLE Type Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Set Type request to the HM-10 BLE device is processed successfully. */
+static uint8_t *HM10_Get_Type_resp_without_type_value = HM10_Get_Role_resp_without_role_value;	                                     /**< @brief Pointer to the equivalent data of a BLE Type Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Get Type request to the HM-10 BLE device is processed successfully. */
+static uint8_t HM10_Reset_resp[] = {'O', 'K', '+', 'R', 'E', 'S', 'E', 'T'};				             /**< @brief Pointer to the equivalent data of a Reset Response that the HM-10 BLE device sends back to our MCU/MPU whenever a Software Reset request sent to the HM-10 BLE device is processed successfully. */
+static uint8_t HM10_OK_resp[] = {'O', 'K'};				                                                                     /**< @brief Pointer to the equivalent data of an OK Response that the HM-10 BLE device sends back to our MCU/MPU whenever a test request sent to the HM-10 BLE device is processed successfully. */
+
+/**@brief	Numbers in ASCII code definitions.
+ *
+ * @details	These definitions contain the decimal equivalent value for each of the number characters available in the
+ *          ASCII code table.
+ *
+ * @note    These definitions are used whenever sending and setting a pin value to the HM-10 BLE Device. In particular,
+ *          they are used for validating that the pin requested to be set on that Device contains only number characters
+ *          available in the ASCII code table.
+ */
+typedef enum
+{
+	Number_0_in_ASCII	= 48U,    //!< \f$0_{ASCII} = 48_d\f$.
+	Number_1_in_ASCII	= 49U,    //!< \f$1_{ASCII} = 49_d\f$.
+	Number_2_in_ASCII	= 50U,    //!< \f$2_{ASCII} = 50_d\f$.
+	Number_3_in_ASCII	= 51U,    //!< \f$3_{ASCII} = 51_d\f$.
+	Number_4_in_ASCII	= 52U,    //!< \f$4_{ASCII} = 52_d\f$.
+	Number_5_in_ASCII	= 53U,    //!< \f$5_{ASCII} = 53_d\f$.
+	Number_6_in_ASCII	= 54U,    //!< \f$6_{ASCII} = 54_d\f$.
+	Number_7_in_ASCII	= 55U,    //!< \f$7_{ASCII} = 55_d\f$.
+	Number_8_in_ASCII	= 56U,    //!< \f$8_{ASCII} = 56_d\f$.
+	Number_9_in_ASCII	= 57U     //!< \f$9_{ASCII} = 57_d\f$.
+} Numbers_in_ASCII;
+
+/**@brief	Flushes the RX of the UART towards which the @ref p_huart Global Pointer points to.
+ *
+ * @details This function will poll-receive one byte from the RX of the UART previously mentioned with a timeout of @ref
+ *          HM10_CUSTOM_HAL_TIMEOUT over and over until a @ref HAL_TIMEOUT HAL Status is received.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date    November 30, 2023.
+ */
+static void HAL_uart_rx_flush();
+
+/**@brief	Gets the corresponding @ref HM10_Status value depending on the given @ref HAL_StatusTypeDef value.
+ *
+ * @param HAL_status	HAL Status value (see @ref HAL_StatusTypeDef ) that wants to be converted into its equivalent
+ * 						of a @ref HM10_Status value.
+ *
+ * @retval				HM10_EC_NR if \p HAL_status param equals \c HAL_BUSY or \c ETX_CUSTOM_HAL_TIMEOUT .
+ * @retval				HM10_EC_ERR if \p HAL_status param equals \c HAL_ERROR .
+ * @retval				HAL_status param otherwise.
+ *
+ * @note	For more details on the returned values listed, see @ref HM10_Status and @ref HAL_StatusTypeDef .
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date October 17, 2023.
+ */
+static HM10_Status HAL_ret_handler(HAL_StatusTypeDef HAL_status);
+
+void init_hm10_module(UART_HandleTypeDef *huart)
+{
+	p_huart = huart;
+}
+
+HM10_Status send_hm10_test_cmd()
+{
+    /** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+    int16_t  ret;
+
+	/* Flush the UART's RX before starting. */
+	HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Test Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Test Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+
+	/* Send the HM-10 Device's Test Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_TEST_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Test Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Test Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_OK_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: An OK Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Test Response. */
+	for (int i=0; i<HM10_OK_RESPONSE_SIZE; i++)
+	{
+		if (TxRx_Buffer[i] != HM10_OK_resp[i])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: An OK Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Test Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status send_hm10_reset_cmd()
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Reset Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Reset Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'R';
+	TxRx_Buffer[4] = 'E';
+	TxRx_Buffer[5] = 'S';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = 'T';
+
+	/* Send the HM-10 Device's Reset Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_RESET_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Reset Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Reset Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_RESET_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Reset Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Reset Response. */
+	for (int i=0; i<HM10_RESET_RESPONSE_SIZE; i++)
+	{
+		if (TxRx_Buffer[i] != HM10_Reset_resp[i])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Reset Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Reset Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status set_hm10_name(uint8_t *hm10_name, uint8_t size)
+{
+	/* Validating given name. */
+	if (size > HM10_MAX_BLE_NAME_SIZE)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: Requested BLE Name must not exceed a length of %d bytes (i.e., %d ASCII Characters).\r\n", HM10_MAX_BLE_NAME_SIZE, HM10_MAX_BLE_NAME_SIZE);
+		#endif
+		return HM10_EC_ERR;
+	}
+
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+	/** <b>Local variable bytes_populated_in_TxRx_Buffer:</b> Currently populated bytes of data into the Tx/Rx Global Buffer. */
+	uint8_t bytes_populated_in_TxRx_Buffer = 0;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Name Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Name Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'A';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'T';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = '+';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'N';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'A';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'M';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'E';
+
+	/** <b>Local variable size_with_offset:</b> Either the total size in bytes stated at the \p size param plus the bytes populated in the Tx/Rx Buffer for only the Name Command, or the total size in bytes stated at the \p size param plus the bytes read from the Tx/Rx Buffer for only the Name Response. */
+	uint8_t size_with_offset = size + bytes_populated_in_TxRx_Buffer;
+	for (uint8_t i=0; bytes_populated_in_TxRx_Buffer<size_with_offset; i++)
+	{
+		TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = hm10_name[i];
+	}
+
+	/* Send the HM-10 Device's Set Name Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, bytes_populated_in_TxRx_Buffer, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Set Name Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Set Name Response. */
+	bytes_populated_in_TxRx_Buffer = HM10_SET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME + size;
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, bytes_populated_in_TxRx_Buffer, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Set Name Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Set Name Response. */
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Set Name Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Set Name Response (i.e., @ref HM10_Set_Name_resp_without_name_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<HM10_SET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Set_Name_resp_without_name_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Name Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	size_with_offset = size + bytes_compared;
+	for (uint8_t i=0; bytes_compared<size_with_offset; i++)
+	{
+		if (TxRx_Buffer[bytes_compared++] != hm10_name[i])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Name Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Name Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status get_hm10_name(uint8_t *hm10_name, uint8_t *size)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Get Name Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Get Name Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'N';
+	TxRx_Buffer[4] = 'A';
+	TxRx_Buffer[5] = 'M';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = '?';
+
+	/* Send the HM-10 Device's Get Name Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_GET_NAME_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Get Name Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Get Name Response but just before the BLE Name bytes. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_GET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Get Name Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Get Name Response part that was just received (i.e., The received data just before the BLE Name bytes part). */
+	/** <b>Local variable bytes_populated_in_TxRx_Buffer:</b> Currently populated bytes of data into the Tx/Rx Global Buffer. */
+	uint8_t bytes_populated_in_TxRx_Buffer = 0;
+	for (; bytes_populated_in_TxRx_Buffer<HM10_GET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME; bytes_populated_in_TxRx_Buffer++)
+	{
+		if (TxRx_Buffer[bytes_populated_in_TxRx_Buffer] != HM10_Get_Name_resp_without_name_value[bytes_populated_in_TxRx_Buffer])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Get Name Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+
+	/* Receive the BLE Name bytes part from the HM-10 Device's Get Name Response. */
+	*size = 0;
+	do
+	{
+		/* Receive the next byte from the BLE Name. */
+		ret = HAL_UART_Receive(p_huart, &TxRx_Buffer[bytes_populated_in_TxRx_Buffer++], 1, HM10_CUSTOM_HAL_TIMEOUT);
+		(*size)++;
+		ret = HAL_ret_handler(ret);
+		if (ret != HAL_OK)
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A BLE Name from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+            #endif
+            *size = 0;
+			return ret;
+		}
+
+		/* Check if the BLE Name has been completely received. */
+		if (TxRx_Buffer[bytes_populated_in_TxRx_Buffer-1] == '\0') // NOTE: '\0' == NULL
+		{
+            if (*size == 1)
+            {
+                *size = 0;
+            }
+            else
+            {
+                (*size)--;
+            }
+			break;
+		}
+
+		/* Validate the BLE Name bytes that have been received so far. */
+		if (bytes_populated_in_TxRx_Buffer == (HM10_MAX_BLE_NAME_SIZE + HM10_GET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME + 1)) // NOTE: The +1 is for the NULL value that is expected be at the end of the response.
+		{
+			ret = HM10_EC_ERR;
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A BLE Name, with a maximum size of %d, from the HM-10 BLE Device was expected, but a larger name was received instead.\r\n", HM10_MAX_BLE_NAME_SIZE);
+			#endif
+			return ret;
+		}
+	}
+	while (1);
+
+	/* Pass the BLE Name from the Buffer that is storing it into the \p hm10_name param. */
+	memcpy(hm10_name, &TxRx_Buffer[HM10_GET_NAME_RESPONSE_SIZE_WITHOUT_REQUESTED_NAME], *size);
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: The BLE Name was successfully received from the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status set_hm10_role(HM10_Role ble_role)
+{
+	/* Validating given role. */
+	switch (ble_role)
+	{
+		case HM10_Role_Peripheral:
+		case HM10_Role_Central:
+			break;
+		default:
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: Requested BLE Role %d is not recognized.\r\n", ble_role);
+			#endif
+			return HM10_EC_ERR;
+	}
+
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Role Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Role Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'R';
+	TxRx_Buffer[4] = 'O';
+	TxRx_Buffer[5] = 'L';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = ble_role;
+
+	/* Send the HM-10 Device's Set Role Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_SET_ROLE_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Set Role Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Set Role Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_ROLE_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Set Role Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Set Role Response. */
+	/** <b>Local variable role_resp_size_without_role_value:</b> Size in bytes of the Role Response from the HM-10 BLE device but without considering the length of the requested role value. */
+	uint8_t role_resp_size_without_role_value = HM10_ROLE_RESPONSE_SIZE - 1;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Set Role Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Set Role Response (i.e., @ref HM10_Set_Role_resp_without_role_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<role_resp_size_without_role_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Set_Role_resp_without_role_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Role Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	if (TxRx_Buffer[bytes_compared] != ble_role)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Role Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+		#endif
+		return HM10_EC_ERR;
+	}
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Role Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status get_hm10_role(HM10_Role *ble_role)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+    /* Populate the HM-10 Device's Get Role Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Get Role Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'R';
+	TxRx_Buffer[4] = 'O';
+	TxRx_Buffer[5] = 'L';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = '?';
+
+	/* Send the HM-10 Device's Get Role Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_GET_ROLE_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Get Role Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Get Role Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_ROLE_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Get Role Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Get Role Response. */
+	/** <b>Local variable role_resp_size_without_role_value:</b> Size in bytes of the Role Response from the HM-10 BLE device but without considering the length of the role value. */
+	uint8_t role_resp_size_without_role_value = HM10_ROLE_RESPONSE_SIZE - 1;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Get Role Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Get Role Response (i.e., @ref HM10_Get_Role_resp_without_role_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<role_resp_size_without_role_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Get_Role_resp_without_role_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Get Role Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	switch (TxRx_Buffer[bytes_compared])
+	{
+		case HM10_Role_Peripheral:
+		case HM10_Role_Central:
+			break;
+		default:
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: Received BLE Role %d is not recognized.\r\n", TxRx_Buffer[bytes_compared]);
+			#endif
+			return HM10_EC_ERR;
+	}
+	*ble_role = TxRx_Buffer[bytes_compared];
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: The BLE Role was successfully received from the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status set_hm10_pin(uint8_t *pin)
+{
+	/* Validating given pin. */
+	for (uint8_t current_pin_character=0; current_pin_character<HM10_PIN_VALUE_SIZE; current_pin_character++)
+	{
+		switch (pin[current_pin_character])
+		{
+			case Number_0_in_ASCII:
+			case Number_1_in_ASCII:
+			case Number_2_in_ASCII:
+			case Number_3_in_ASCII:
+			case Number_4_in_ASCII:
+			case Number_5_in_ASCII:
+			case Number_6_in_ASCII:
+			case Number_7_in_ASCII:
+			case Number_8_in_ASCII:
+			case Number_9_in_ASCII:
+				break;
+			default:
+				#if ETX_OTA_VERBOSE
+					printf("ERROR: Expected a number character value in ASCII code on given pin value at index %d, but the following ASCII value was given instead: %c.\r\n", current_pin_character, pin[current_pin_character]);
+				#endif
+				return HM10_EC_ERR;
+		}
+	}
+
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+	/** <b>Local variable bytes_populated_in_TxRx_Buffer:</b> Currently populated bytes of data into the Tx/Rx Global Buffer. */
+	uint8_t bytes_populated_in_TxRx_Buffer = 0;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Set Pin Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Pin Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'A';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'T';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = '+';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'P';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'A';
+	TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'S';
+    TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = 'S';
+	for (uint8_t current_pin_character=0; bytes_populated_in_TxRx_Buffer<HM10_SET_PIN_CMD_SIZE; current_pin_character++)
+	{
+		TxRx_Buffer[bytes_populated_in_TxRx_Buffer++] = pin[current_pin_character];
+	}
+
+	/* Send the HM-10 Device's Set Pin Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_SET_PIN_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: The transmission of the Set Pin Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Set Pin Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_PIN_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: A Set Pin Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Set Pin Response. */
+	/** <b>Local variable pin_resp_size_without_pin_value:</b> Size in bytes of the Pin Response from the HM-10 BLE device but without considering the length of the pin value. */
+	uint8_t pin_resp_size_without_pin_value = HM10_PIN_RESPONSE_SIZE - HM10_PIN_VALUE_SIZE;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Set Pin Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Set Pin Response (i.e., @ref HM10_Set_Pin_resp_without_pin_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<pin_resp_size_without_pin_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Set_Pin_resp_without_pin_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Set Pin Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	for (uint8_t current_pin_character=0; bytes_compared<HM10_PIN_RESPONSE_SIZE; current_pin_character++)
+	{
+		if (TxRx_Buffer[bytes_compared++] != pin[current_pin_character])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Set Pin Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Set Pin Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status get_hm10_pin(uint8_t *pin)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Get Pin Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Get Pin Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'P';
+	TxRx_Buffer[4] = 'A';
+	TxRx_Buffer[5] = 'S';
+	TxRx_Buffer[6] = 'S';
+	TxRx_Buffer[7] = '?';
+
+	/* Send the HM-10 Device's Get Pin Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_GET_PIN_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		#if ETX_OTA_VERBOSE
+			printf("ERROR: Last attempt for transmitting the Get Pin Command to HM-10 BLE Device has failed.\r\n");
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Get Pin Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_PIN_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		if (resp_attempts == 0)
+		{
+			resp_attempts++;
+			#if ETX_OTA_VERBOSE
+				printf("WARNING: Attempt %d to receive the Get Pin Response from HM-10 BLE Device has failed.\r\n", resp_attempts);
+			#endif
+			ret = send_get_pin_cmd(pin);
+		}
+		#if ETX_OTA_VERBOSE
+			else
+			{
+				printf("ERROR: A Get Pin Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+			}
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Get Pin Response. */
+	/** <b>Local variable pin_resp_size_without_pin_value:</b> Size in bytes of the Pin Response from the HM-10 BLE device but without considering the length of the pin value. */
+	uint8_t pin_resp_size_without_pin_value = HM10_PIN_RESPONSE_SIZE - HM10_PIN_VALUE_SIZE;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Get Pin Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Get Pin Response (i.e., @ref HM10_Get_Pin_resp_without_pin_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<pin_resp_size_without_pin_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Get_Pin_resp_without_pin_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Pin Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	for (uint8_t current_pin_character=0; current_pin_character<HM10_PIN_VALUE_SIZE; current_pin_character++)
+	{
+		switch (TxRx_Buffer[bytes_compared])
+		{
+			case Number_0_in_ASCII:
+			case Number_1_in_ASCII:
+			case Number_2_in_ASCII:
+			case Number_3_in_ASCII:
+			case Number_4_in_ASCII:
+			case Number_5_in_ASCII:
+			case Number_6_in_ASCII:
+			case Number_7_in_ASCII:
+			case Number_8_in_ASCII:
+			case Number_9_in_ASCII:
+				break;
+			default:
+				#if ETX_OTA_VERBOSE
+					printf("ERROR: Expected a number character value in ASCII code on received pin value at index %d, but the following ASCII value was given instead: %c.\r\n", current_pin_character, TxRx_Buffer[bytes_compared]);
+				#endif
+				return HM10_EC_ERR;
+		}
+		bytes_compared++;
+	}
+
+	/* Pass the BLE Pin from the Buffer that is storing it into the \p pin param. */
+	memcpy(pin, &TxRx_Buffer[pin_resp_size_without_pin_value], HM10_PIN_VALUE_SIZE);
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: The BLE Pin was successfully received from the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status set_hm10_pin_code_mode(HM10_Pin_Code_Mode pin_code_mode)
+{
+	/* Validating given pin code mode. */
+	switch (pin_code_mode)
+	{
+		case HM10_Pin_Code_DISABLED:
+		case HM10_Pin_Code_ENABLED:
+			break;
+		default:
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: An invalid pin code mode value has been given: %c_ASCII.\r\n", pin_code_mode);
+			#endif
+			return HM10_EC_ERR;
+	}
+
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Type Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Type Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'T';
+	TxRx_Buffer[4] = 'Y';
+	TxRx_Buffer[5] = 'P';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = pin_code_mode;
+
+	/* Send the HM-10 Device's Role Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_SET_TYPE_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		if (resp_attempts == 0)
+		{
+			resp_attempts++;
+			#if ETX_OTA_VERBOSE
+				printf("WARNING: Attempt %d to transmit Type Command to HM-10 BLE Device has failed.\r\n", resp_attempts);
+			#endif
+			ret = send_set_type_cmd(pin_code_mode);
+		}
+		#if ETX_OTA_VERBOSE
+			else
+			{
+				printf("ERROR: Last attempt for transmitting the Type Command to HM-10 BLE Device has failed.\r\n");
+			}
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Type Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_TYPE_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		if (resp_attempts == 0)
+		{
+			resp_attempts++;
+			#if ETX_OTA_VERBOSE
+				printf("WARNING: Attempt %d to receive Type Response from HM-10 BLE Device has failed.\r\n", resp_attempts);
+			#endif
+			ret = send_set_type_cmd(pin_code_mode);
+		}
+		#if ETX_OTA_VERBOSE
+			else
+			{
+				printf("ERROR: A Type Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+			}
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Type Response. */
+	/** <b>Local variable type_resp_size_without_pin_mode_value:</b> Size in bytes of the Type Response from the HM-10 BLE device but without considering the length of the Type value. */
+	uint8_t type_resp_size_without_pin_mode_value = HM10_TYPE_RESPONSE_SIZE - 1;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Set Type Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Set Type Response (i.e., @ref HM10_Set_Type_resp_without_type_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<type_resp_size_without_pin_mode_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Set_Type_resp_without_type_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Type Response from the HM-10 BLE Device was expected, but something else was received instead at index %d. The received value was %c_ASCII and the expected value is %c_ASCII.\r\n", bytes_compared, TxRx_Buffer[bytes_compared], HM10_Set_Type_resp_without_type_value[bytes_compared]);
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	if (TxRx_Buffer[bytes_compared] != pin_code_mode)
+	{
+		#if ETX_OTA_VERBOSE
+		printf("ERROR: A Type Response from the HM-10 BLE Device was expected, but something else was received instead at index %d. The received value was %c_ASCII and the expected value is %c_ASCII.\r\n", bytes_compared, TxRx_Buffer[bytes_compared], pin_code_mode);
+		#endif
+		return HM10_EC_ERR;
+	}
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: A Type Command was successfully sent to the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status get_hm10_pin_code_mode(HM10_Pin_Code_Mode *pin_code_mode)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+    /* Flush the UART's RX before starting. */
+    HAL_uart_rx_flush();
+
+	/* Populate the HM-10 Device's Get Type Command into the Tx/Rx Buffer. */
+	#if ETX_OTA_VERBOSE
+		printf("Sending Get Type Command to HM-10 BLE Device...\r\n");
+	#endif
+	TxRx_Buffer[0] = 'A';
+	TxRx_Buffer[1] = 'T';
+	TxRx_Buffer[2] = '+';
+	TxRx_Buffer[3] = 'T';
+	TxRx_Buffer[4] = 'Y';
+	TxRx_Buffer[5] = 'P';
+	TxRx_Buffer[6] = 'E';
+	TxRx_Buffer[7] = '?';
+
+	/* Send the HM-10 Device's Get Type Command. */
+	ret = HAL_UART_Transmit(p_huart, TxRx_Buffer, HM10_GET_TYPE_CMD_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		if (resp_attempts == 0)
+		{
+			resp_attempts++;
+			#if ETX_OTA_VERBOSE
+				printf("WARNING: Attempt %d to transmit Get Type Command to HM-10 BLE Device has failed.\r\n", resp_attempts);
+			#endif
+			ret = send_get_type_cmd(pin_code_mode);
+		}
+		#if ETX_OTA_VERBOSE
+			else
+			{
+				printf("ERROR: Last attempt for transmitting the Get Type Command to HM-10 BLE Device has failed.\r\n");
+			}
+		#endif
+		return ret;
+	}
+
+	/* Receive the HM-10 Device's Get Type Response. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, HM10_TYPE_RESPONSE_SIZE, HM10_CUSTOM_HAL_TIMEOUT);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		if (resp_attempts == 0)
+		{
+			resp_attempts++;
+			#if ETX_OTA_VERBOSE
+				printf("WARNING: Attempt %d to receive the Get Type Response from HM-10 BLE Device has failed.\r\n", resp_attempts);
+			#endif
+			ret = send_get_type_cmd(pin_code_mode);
+		}
+		#if ETX_OTA_VERBOSE
+			else
+			{
+				printf("ERROR: A Get Type Response from the HM-10 BLE Device was expected, but none was received (HM-10 Exception code = %d)\r\n", ret);
+			}
+		#endif
+		return ret;
+	}
+
+	/* Validate the HM-10 Device's Get Type Response. */
+	/** <b>Local variable type_resp_size_without_type_value:</b> Size in bytes of the Type Response from the HM-10 BLE device but without considering the length of the Type value. */
+	uint8_t type_resp_size_without_type_value = HM10_TYPE_RESPONSE_SIZE - 1;
+	/** <b>Local variable bytes_compared:</b> Counter for the bytes that have been compared and validated to match between the received Get Type Response (which should be stored in @ref TxRx_Buffer buffer ) and the expected Get Type Response (i.e., @ref HM10_Get_Type_resp_without_type_value ). */
+	uint8_t bytes_compared = 0;
+	for (; bytes_compared<type_resp_size_without_type_value; bytes_compared++)
+	{
+		if (TxRx_Buffer[bytes_compared] != HM10_Get_Type_resp_without_type_value[bytes_compared])
+		{
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: A Type Response from the HM-10 BLE Device was expected, but something else was received instead.\r\n");
+			#endif
+			return HM10_EC_ERR;
+		}
+	}
+	switch (TxRx_Buffer[bytes_compared])
+	{
+		case HM10_Pin_Code_DISABLED:
+		case HM10_Pin_Code_ENABLED:
+			break;
+		default:
+			#if ETX_OTA_VERBOSE
+				printf("ERROR: An invalid pin code mode value has been given: %c_ASCII.\r\n", TxRx_Buffer[bytes_compared]);
+			#endif
+			return HM10_EC_ERR;
+	}
+
+	/* Pass the BLE Pin Code Mode from the Buffer that is storing it into the \p pin_code_mode param. */
+	*pin_code_mode = TxRx_Buffer[type_resp_size_without_type_value];
+
+	#if ETX_OTA_VERBOSE
+		printf("DONE: The BLE Pin Code Mode was successfully received from the HM-10 BLE Device.\r\n");
+	#endif
+
+	return HM10_EC_OK;
+}
+
+HM10_Status send_hm10_ota_data(uint8_t *ble_ota_data, uint16_t size, uint32_t timeout)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+	/* Send the requested data Over the Air (OTA) via the HM-10 BLE Device. */
+	ret = HAL_UART_Transmit(p_huart, ble_ota_data, size, timeout);
+	ret = HAL_ret_handler(ret);
+
+	return ret;
+}
+
+HM10_Status get_hm10_ota_data(uint8_t *ble_ota_data, uint16_t size, uint32_t timeout)
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function or a @ref HM10_Status function type. */
+	int16_t  ret;
+
+	/* Receive the HM-10 Device's BLE data that is received Over the Air (OTA), if there is any. */
+	ret = HAL_UART_Receive(p_huart, ble_ota_data, size, timeout);
+	ret = HAL_ret_handler(ret);
+
+	return ret;
+}
+
+static void HAL_uart_rx_flush()
+{
+	/** <b>Local variable ret:</b> Return value of either a HAL function type. */
+	HAL_StatusTypeDef  ret;
+
+	/* Receive the HM-10 Device's BLE data that is received Over the Air (OTA), if there is any. */
+	ret = HAL_UART_Receive(p_huart, TxRx_Buffer, 1, HM10_CUSTOM_HAL_TIMEOUT);
+	if (ret != HAL_TIMEOUT)
+	{
+		HAL_uart_rx_flush();
+	}
+}
+
+static HM10_Status HAL_ret_handler(HAL_StatusTypeDef HAL_status)
+{
+  switch (HAL_status)
+    {
+  	  case HAL_BUSY:
+	  case HAL_TIMEOUT:
+		return HM10_EC_NR;
+	  case HAL_ERROR:
+		return HM10_EC_ERR;
+	  default:
+		return HAL_status;
+    }
+}
+
+/** @} */

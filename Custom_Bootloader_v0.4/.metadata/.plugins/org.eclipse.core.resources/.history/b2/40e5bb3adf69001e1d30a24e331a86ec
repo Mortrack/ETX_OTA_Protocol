@@ -1,0 +1,106 @@
+/** @file
+ *
+ * @defgroup firmware_update Firmware Update module
+ * @{
+ *
+ * @brief	This module provides the functions required to enable the application to be able to handle Firmware Update
+ *          requests via ETX OTA Protocol and to install Bootloader Firmware Images in our MCU/MPU if requested by
+ *          using our MCU/MPU's UART2 as a communication channel.
+ *
+ * @details	The ETX OTA process sends/receives data through Packets.
+ * @details There 4 types of Packets:
+ *          <ol>
+ *              <li>Command Type Packets</li>
+ *              <li>Header Type Packets</li>
+ *              <li>Data Type Packets</li>
+ *              <li>Response Type Packets</li>
+ *          </ol>
+ *          where it is suggested to see @ref ETX_OTA_Packet_t for more details.
+ * @details The General Data Format for all types of Packets is the following set of bytes:
+ *          <ol>
+ *              <li>Start of Frame (SOF): 1 byte</li>
+ *              <li>Packet Type: 1 byte</li>
+ *              <li>Data Length: 2 bytes</li>
+ *              <li>Data: 1 up to 1024 bytes (size must be perfectly divisible by 4 bytes)</li>
+ *              <li>CRC32: 4 bytes</li>
+ *              <li>End of Frame (EOF): 1 byte</li>
+ *          </ol>
+ *          but for finer details on the Data Format for each type of ETX OTA Packet, see @ref ETX_OTA_Command_Packet_t ,
+ *          @ref ETX_OTA_Header_Packet_t , @ref ETX_OTA_Data_Packet_t and @ref ETX_OTA_Response_Packet_t .
+ * @details On the other hand, the ETX OTA Protocol has 5 different states that indicate the part of the process at which
+ *          we are located at with respect to a single Firmware Update process, which are given by the following in that
+ *          order:
+ *          <ol>
+ *              <li>ETX OTA Idle State</li>
+ *              <li>ETX OTA Start State</li>
+ *              <li>ETX OTA Header State</li>
+ *              <li>ETX OTA Data State</li>
+ *              <li>ETX OTA End State</li>
+ *          </ol>
+ *          where it is suggested to see @ref ETX_OTA_State for more details.
+ * @details Finally, the way our MCU/MPU will interact with a host is that the host will send a single packet for each
+ * 			ETX OTA State, except maybe in the Data State since multiple packets are allowed there. Nonetheless, our
+ * 			MCU/MPU will expect the ETX OTA States to transition in the order previously shown and our MCU/MPU will
+ * 			also both validate the received data and, if it is successful on that, it will always respond back to the
+ * 			host with an ETX OTA Response Type Packet to let it know whether or not our MCU/MPU was able to successfully
+ * 			get and process the data of the each Packet by sending an ACK, or otherwise with a NACK.
+ *
+ * @author 	EmbeTronicX (<a href=https://github.com/Embetronicx/STM32-Bootloader/tree/ETX_Bootloader_3.0>STM32-Bootloader GitHub Repository under ETX_Bootloader_3.0 branch</a>)
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	October 11, 2023.
+ */
+#include <stdint.h>
+#include "firmware_update_config.h" // We call the library that holds the Firmware Update Configurations sub-module.
+
+#ifndef FIRMWARE_UPDATE_H_
+#define FIRMWARE_UPDATE_H_
+
+#define ETX_BL_FLASH_ADDR			(0x08000000)   	/**< @brief Designated Flash Memory start address for the Bootloader Firmware of our MCU/MPU. @note The Start Memory Location address should correspond to the Flash Memory Page number 0. */
+#define ETX_APP_FLASH_ADDR			(0x08008800)   	/**< @brief Designated Flash Memory start address for the Application Firmware of our MCU/MPU. @note The Start Memory Location address should correspond to the Flash Memory Page number 34. */
+#define FLASH_PAGE_SIZE_IN_BYTES	(1024U)			/**< @brief Flash Memory page size in bytes as defined by the MCU/MPU with which the Serial Port communication has been established with. */
+#define ETX_BL_FLASH_PAGES_SIZE 	(34U)   		/**< @brief Designated Flash Memory pages for the Bootloader Firmware of our MCU/MPU. */
+#define ETX_APP_FLASH_PAGES_SIZE 	(84U)   		/**< @brief Designated Flash Memory pages for the Application Firmware of our MCU/MPU. */
+#define CUSTOM_HAL_TIMEOUT			(9000U)			/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each FLASH and UART reception request in our MCU/MPU. @note For more details see @ref FLASH_WaitForLastOperation and @ref HAL_UART_Receive . */
+
+/**@brief	ETX OTA Exception codes.
+ *
+ * @details	These Exception Codes are returned by the functions of the @ref firmware_update module to indicate the
+ *          resulting status of having executed the process contained in each of those functions. For example, to
+ *          indicate that the process executed by a certain function was successful or that it has failed.
+ */
+typedef enum
+{
+	ETX_OTA_EC_OK       = 0U,    //!< ETX OTA Protocol was successful. @note The code from the @ref HAL_ret_handler function contemplates that this value will match the one given for \c HAL_OK from @ref HAL_StatusTypeDef .
+	ETX_OTA_EC_STOP     = 1U,    //!< ETX OTA Protocol has been stopped.
+	ETX_OTA_EC_NR		= 2U,	 //!< ETX OTA Protocol has concluded with no response from Host.
+	ETX_OTA_EC_NA       = 3U,    //!< ETX OTA Payload received or to be received Not Applicable.
+	ETX_OTA_EC_ERR      = 4U     //!< ETX OTA Protocol has failed.
+} ETX_OTA_Status;
+
+/**@brief   Attempt to receive and install a Bootloader Firmware Image into our MCU/MPU.
+ *
+ * @details The format used by this function for receiving a Firmware Image from the host is expected to be that of the
+ *          ETX OTA Protocol and via UART2.
+ *
+ * @note    For more details on how the ETX OTA Protocol works, see the @ref firmware_update module.
+ * @note	This function expects that the @ref firmware_update_config sub-module has already been initialized via the
+ *          @ref firmware_update_configurations_init function.
+ *
+ * @param[in,out] p_fw_config	Pointer to the struct that should already contain the latest data of the
+ *                              @ref firmware_update_config sub-module.
+ *
+ * @retval						ETX_OTA_EC_OK
+ * @retval						ETX_OTA_EC_STOP
+ * @retval						ETX_OTA_EC_NR
+ * @retval						ETX_OTA_EC_NA
+ * @retval						ETX_OTA_EC_ERR
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @author 	EmbeTronicX (<a href=https://github.com/Embetronicx/STM32-Bootloader/tree/ETX_Bootloader_3.0>STM32-Bootloader GitHub Repository under ETX_Bootloader_3.0 branch</a>)
+ * @date October 09, 2023.
+ */
+ETX_OTA_Status app_firmware_image_download_and_install(firmware_update_config_data_t *p_fw_config);
+
+#endif /* FIRMWARE_UPDATE_H_ */
+
+/** @} */

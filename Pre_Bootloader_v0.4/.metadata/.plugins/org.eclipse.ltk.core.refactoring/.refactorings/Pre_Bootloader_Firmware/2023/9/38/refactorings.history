@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;Custom_Bootloader_Firmware/Core/Src/firmware_update_config&apos; to &apos;firmware_update_config.c&apos;" description="Rename resource &apos;firmware_update_config&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Src/firmware_update_config" name="firmware_update_config.c" stamp="1695323825718" updateReferences="true"/>
+</session>

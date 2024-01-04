@@ -1,0 +1,7 @@
+../Core/Src/firmware_update_config.c:134:20:firmware_update_configurations_init	8
+../Core/Src/firmware_update_config.c:189:20:firmware_update_configurations_read	2
+../Core/Src/firmware_update_config.c:202:20:firmware_update_configurations_write	7
+../Core/Src/firmware_update_config.c:272:27:restore_firm_updt_config_flash_memory	3
+../Core/Src/firmware_update_config.c:291:27:prep_page_swap	5
+../Core/Src/firmware_update_config.c:315:27:page_erase	4
+../Core/Src/firmware_update_config.c:353:27:HAL_ret_handler	4

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="wrap" value="true"/>
+		<item key="casesensitive" value="false"/>
+		<item key="wholeword" value="false"/>
+		<item key="incremental" value="false"/>
+		<item key="isRegEx" value="false"/>
+		<item key="selection" value=""/>
+		<list key="findhistory">
+			<item value="TODO:"/>
+			<item value="ETX_OTA_EC_ERR"/>
+			<item value="HAL_uart_rx_flush"/>
+			<item value="HAL_ret_handler"/>
+			<item value="A Name Response from the HM-10 Clone BLE Device was expected, but something else was received instead"/>
+			<item value="but something else was received instead"/>
+			<item value="custom_init_firmware_update_module"/>
+			<item value="HAL_GPIO_WritePin(GPIOC, GPIO_MCU_LED1_Pin, GPIO_PIN_RESET);"/>
+			<item value="is_app_fw_validation_ok"/>
+			<item value="validate_application_firmware"/>
+			<item value="set to its default value (Exception"/>
+			<item value="write_data_to_flash_app"/>
+		</list>
+		<list key="replacehistory">
+			<item value="custom_init_etx_ota_protocol_module"/>
+			<item value="write_data_to_ram"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="883"/>
+		<item key="DIALOG_Y_ORIGIN" value="494"/>
+		<item key="DIALOG_WIDTH" value="322"/>
+		<item key="DIALOG_HEIGHT" value="391"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+</section>

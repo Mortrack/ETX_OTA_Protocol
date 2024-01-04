@@ -1,0 +1,22 @@
+/** @addtogroup crc32_mpeg2
+ * @{
+ */
+
+#include "crc32_mpeg2.h"
+
+uint32_t CRC32(uint8_t *p_data, uint32_t DataLength)
+{
+    /** <b>Local variable checksum:</b> Will hold the resulting checksum of the 32-bit CRC Hash Function to be calculated. @note A checksum is any sort of mathematical operation that it is performed on data to represent its number of bits in a transmission message. This is usually used by programmers to detect high-level errors within data transmissions. The way this is used is prior to transmission, such that every piece of data or file can be assigned a checksum value after running a cryptographic has function, which in this particular case, the has function is 32-bit CRC. */
+    uint32_t checksum = 0xFFFFFFFF;
+
+    /* Apply the 32-bit CRC Hash Function to the given input data (i.e., The data towards which the \p p_data pointer points to). */
+    for (unsigned int i=0; i<DataLength; i++)
+    {
+        uint8_t top = (uint8_t) (checksum >> 24);
+        top ^= p_data[i];
+        checksum = (checksum << 8) ^ crc_table[top];
+    }
+    return checksum;
+}
+
+/** @} */

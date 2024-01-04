@@ -1,0 +1,235 @@
+/** @addtogroup bl_side_firmware_update
+ * @{
+ */
+
+/** @file
+ *
+ * @defgroup firmware_update_config Firmware Update Configurations sub-module
+ * @{
+ *
+ * @brief       This sub-module provides the functions required to enable the @ref firmware_update to be able to store
+ *              and retrieve the Firmware Update Configurations in or from our MCU/MPU's Flash Memory respectively.
+ *
+ * @details 	The strategy followed by this sub-module is to use our MCU/MPU's Flash Memory with a modified method of
+ * 				<a href=http://ww1.microchip.com/downloads/en/appnotes/01095c.pdf>MICROCHIP's Emulating Data EEPROM</a>,
+ *              where the next data to be written will be made linearly in the currently designated Flash Memory
+ *              addresses and in a very simple and straightforward way. The way the data will be written is that each
+ *              time there is a new data to write into the Flash Memory designated pages, this data will be written
+ *              right after the most recently written data. Whenever we write into the last available address of the
+ *              designated Flash Memory pages, the program will continue writing on the initial address. For this to
+ *              work out, whenever one Firmware Update Configurations Page is full of data (which differs from a Flash
+ *              Memory and where 1 Firmware Update Configurations Page is actually compoased of 2 Flash Memory pages),
+ *              then the program will jump from one Firmware Update Configurations page to another and the previous page
+ *              that was left full of written data will be erased. However, this will only happen after one of the two
+ *              Firmware Update Configurations Pages is full of data and if this sub-module has already written data
+ *              into the other one. As a result, this sub-module will allow the programmer to store and persist Firmware
+ *              Update Configuration settings into our MCU/MPU's Flash Memory but by also contributing to preserving the
+ *              lifetime of the Flash Memory.
+ *
+ * @note		The code from this sub-module contemplates/expects the programmer to have fully erased the Flash Memory
+ * 				of the MCU/MPU only for the very first time that this library is used in that device. If this is true,
+ * 				then it is safe to use this library. However, if this is not the case, then the code from this
+ * 				sub-module might have undefined behaviors unless the programmer guarantees that the Flash Memory pages
+ * 				dedicated to this sub-module have been fully erased for the very first time that this
+ * 				library's/sub-module's code is used in that MCU/MPU.
+ *
+ * @note		While this code was inspired from a code that I, Cesar Miranda Meza, worked when I was employed at
+ *              Acuity Brands during 2023, it is simply that: inspired from. This is because this code has been made
+ *              very differently with several original concepts and ideas that Cesar Miranda Meza came out with after
+ *              having worked at that company and that is also used for a very different purpose/application than the
+ *              one used at Acuity Brands for their version "of this code".
+ *
+ * @details		The following is a code example for initializing this sub-module and also for showing how to read and
+ * 				write data in it.
+ * @code
+ #include "firmware_update_config.h" // We call the library that holds the Firmware Update Configurations sub-module.
+
+ int main()
+ {
+	FirmUpdConf_Status ret; // Local variable used to hold the exception code values returned by functions of the Firmware Update Configurations sub-module.
+	firmware_update_config_data_t p_data; //Local struct used to either pass to it the data that we want to write into the designated Flash Memory pages of the @ref firmware_update_config sub-module or, in the case of a read request, where that sub-module will write the latest data contained in the sub-module.
+
+	// We initialize the Firmware Update Configurations sub-module. This should only be called once in the lifetime of the program.
+	ret = firmware_update_configurations_init();
+	if (ret != FIRM_UPDT_CONF_EC_OK)
+	{
+		printf("ERROR CODE %d: The Firmware Update Configurations sub-module could not be initialized...\r\n", ret);
+		return ret;
+	}
+
+	// We read the latest data that has been written into the Flash Memory designated to the Firmware Update Configurations sub-module. This can be done as many times as desired during the lifetime of the program.
+	ret = firmware_update_configurations_read(&p_data);
+	if (ret == FIRM_UPDT_CONF_EC_NO_DATA)
+	{
+		printf('There is currently no data written into the Firmware Update Configurations sub-module.\r\n');
+	}
+	else
+	{
+		printf("The data that was read from the Firmware Update Configurations sub-module is the following:\r\n");
+		printf("Bootloader Firmware size = %d\r\n", p_data.BL_fw_size);
+		printf("Bootloader Firmware recorded 32-bit CRC = %d\r\n", p_data.BL_fw_rec_crc);
+		printf("Application Firmware size = %d\r\n", p_data.App_fw_size);
+		printf("Application Firmware recorded 32-bit CRC = %d\r\n", p_data.App_fw_rec_crc);
+	}
+
+	// We write a new data block to the Flash Memory designated to the Firmware Update Configurations sub-module. This can be done as many times as desired during the lifetime of the program.
+	// NOTE: If you only want to write a few couple of fields of the "firmware_update_config_data_t structure, then make sure to first read the latest data written into the Firmware Update Configurations sub-module before writing something into it so that you don't overwrite the other data with something else.
+	p_data.App_fw_size = 10240; // This is a fake value, for demonstration purposes only.
+	p_data.App_fw_rec_crc = 0x45AB68B3; // This is a fake value, for demonstration purposes only.
+	ret = firmware_update_configurations_write(&p_data);
+	if (ret != FIRM_UPDT_CONF_EC_OK)
+	{
+		printf("ERROR CODE %d: The data was not written into the Firmware Update Configurations sub-module.\r\n");
+		return ret;
+	}
+
+	printf("The data was successfully written into the Firmware Update Configurations sub-module.\r\n");
+    return 0;
+ }
+ * @endcode
+ *
+ *
+ * @author Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date November 14, 2023.
+ */
+
+#ifndef FIRMWARE_UPDATE_CONFIG_H_
+#define FIRMWARE_UPDATE_CONFIG_H_
+
+#include <stdint.h> // This library contains the aliases: uint8_t, uint16_t, uint32_t, etc.
+#include "etx_ota_config.h" // Custom Library used for configuring the ETX OTA protocol.
+#include "crc32_mpeg2.h" // This custom library provides a function to calculate the CRC32/MPEG-2 algorithm.
+
+#define DATA_BLOCK_32BIT_ERASED_VALUE	(0xFFFFFFFF)	/**< @brief Designated value to indicate that a certain 32-bit field value of the @ref firmware_update_config_data_t structure has either been erased or that there is no data in it. */
+
+/*!@brief	Firmware Update Configurations Exception Codes.
+ *
+ * @details	These Exception Codes are returned by the functions of the @ref firmware_update_config sub-module to
+ * 			indicate the resulting status of having executed the process contained in each of those functions (e.g., to
+ * 			indicate that the process executed by a certain function was successful or that it has failed).
+ */
+typedef enum
+{
+	FIRM_UPDT_CONF_EC_OK    	= 0U,   //!< Firmware Update Configurations Process was successful. @note The code from the @ref HAL_ret_handler function contemplates that this value will match the one given for \c HAL_OK from @ref HAL_StatusTypeDef .
+	FIRM_UPDT_CONF_EC_NR		= 2U,	//!< Firmware Update Configurations Process has concluded with no response from HAL when requesting it to erase a certain page.
+	FIRM_UPDT_CONF_EC_ERR   	= 4U,   //!< Firmware Update Configurations Process has failed.
+	FIRM_UPDT_CONF_EC_CRPT		= 5U,	//!< Firmware Update Configurations Flash Memory's Block value that was read has been identified to be corrupted.
+	FIRM_UPDT_CONF_EC_NO_DATA	= 6U	//!< Firmware Update Configurations Read Process could not be made because there is currently no existing data in the designated Flash Memory pages.
+} FirmUpdConf_Status;
+
+/*!@brief	Is Bootloader Firmware Image Stored in Application Firmware Image Status.
+ *
+ * @details	These definitions define the available states of a "Is Bootloader Firmware Image Stored in Application
+ *          Firmware Image" status.
+ */
+typedef enum
+{
+    BT_FW_NOT_STORED_IN_APP_FW    	= 0U,   //!< Bootloader Firmware Image is not stored in the Flash Memory designated for the Application Firmware Image.
+    BT_FW_STORED_IN_APP_FW		    = 1U	//!< Bootloader Firmware Image is stored in the Flash Memory designated for the Application Firmware Image.
+} IsBlFwStoredInAppFw_Status;
+
+/*!@brief	Is Bootloader Firmware Install Pending Status.
+ *
+ * @details	These definitions define the available states of a "Is Bootloader Firmware Install Pending" status.
+ */
+typedef enum
+{
+    NOT_PENDING    	= 0U,   //!< Bootloader Firmware Install is not pending to be made.
+    IS_PENDING		= 1U	//!< Bootloader Firmware Install is pending to be made.
+} IsBlFwPending_Status;
+
+/**@brief	Firmware Update Configurations Data parameters structure. This contains all the fields of the data that will
+ *          be managed by the @ref firmware_update_config .
+ *
+ * @note	If the size of this struct is to be changed, then make sure that the bytes size of the designated pages of
+ *          the @ref firmware_update_config (which is 4096 bytes) are divisible by the resulting size of
+ *          @ref firmware_update_config_t .
+ * @note	For more details on the total size of all the designated Flash Memory pages of the
+ * 			@ref firmware_update_config , see the @ref FW_UPDT_CONFIG_PAGE_SIZE definition and have in mind that the
+ * 			@ref firmware_update_config states that this sub-module has been designated 4 Flash Memory pages in total.
+ */
+typedef struct __attribute__ ((__packed__))
+{
+    uint32_t BL_fw_size;                //!< Size in bytes of the Bootloader Firmware Image currently being run by our MCU/MPU.
+    uint32_t BL_fw_rec_crc;                //!< Recorded CRC of the Bootloader Firmware Image currently being run by our MCU/MPU.
+    uint32_t App_fw_size;                //!< Size in bytes of the Application Firmware Image currently being run by our MCU/MPU.
+    uint32_t App_fw_rec_crc;            //!< Recorded CRC of the Application Firmware Image currently being run by our MCU/MPU.
+    uint32_t reserved1;                    //!< 32-bits reserved for future possible uses for the Firmware Update Configurations sub-module.
+    uint16_t reserved2;                    //!< 16-bits reserved for future possible uses for the Firmware Update Configurations sub-module.
+    uint8_t is_bl_fw_stored_in_app_fw;    //!< Flag that indicates whether our MCU/MPU has a Bootloader Firmware Image stored in the Flash Memory designated for its Application Firmware Image or not. @note For more details on the available values/states of this field, see @ref IsBlFwStoredInAppFw_Status .
+    uint8_t is_bl_fw_install_pending;   //!< Flag that indicates whether our MCU/MPU is still pending to install the Bootloader Firmware Image that it has temporarily stored in the Flash Memory designated for the Application Firmware Image or not. @note For more details on the available values/states of this field, see @ref IsBlFwPending_Status .
+};
+
+/**@brief	Cycles through the Flash Memory pages that have been designated to the Firmware Update Configurations until
+ * 			a Firmware Update Configurations Block is found to have been erased. Subsequently, it identifies the page
+ * 			number of the Firmware Update Configurations that should be erased next and then requests to erase it but
+ * 			only in the case that erasing a page from it is required right now.
+ *
+ * @note	This function has to be called first before starting to use the @ref firmware_update_configurations_read and
+ * 			@ref firmware_update_configurations_write functions so that the @ref firmware_update_config works as
+ * 			expected.
+ * @note    During the execution of this function, The Flash Memory address of the Firmware Update Configurations Block
+ * 			containing the most recently written Firmware Update Configurations value will be pointed to it via the
+ * 			static global struct @ref p_most_recent_val .
+ *
+ * @retval  FIRM_UPDT_CONF_EC_OK
+ * @retval	FIRM_UPDT_CONF_EC_NR
+ * @retval	FIRM_UPDT_CONF_EC_ERR
+ * @retval	FIRM_UPDT_CONF_EC_CRPT
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date September 26, 2023.
+ */
+FirmUpdConf_Status firmware_update_configurations_init();
+
+/**@brief	Gets the latest Firmware Update Configurations data that has been written into the designated Flash Memory
+ * 			pages of the @ref firmware_update_config sub-module.
+ *
+ * @details	The latest data will be written into the field values of the structure at which the \p p_data param
+ * 			points to. However, in the case that there is currently no data in the designated Flash Memory pages of
+ * 			the @ref firmware_update_config , then the data returned will be that of the
+ * 			@ref FIRMWARE_UPDATE_CONFIG_START_ADDR address, which should have all its bits set to their reset state
+ * 			(i.e., to 1s) in the case that there really is no data in this sub-module.
+ *
+ * @note	The @ref firmware_update_configurations_init function has to be called first before starting to use the
+ * 			@ref firmware_update_configurations_read function so that this sub-module works as expected.
+ *
+ * @param[out] p_data	Pointer to the memory address at which a copy of the latest data that will be written into.
+ *
+ * @retval				FIRM_UPDT_CONF_EC_OK
+ * @retval				FIRM_UPDT_CONF_EC_NO_DATA
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date October 13, 2023.
+ */
+FirmUpdConf_Status  firmware_update_configurations_read(firmware_update_config_data_t *p_data);
+
+/**@brief	Writes a desired Firmware Update Configurations block data into the designated Flash Memory pages of the
+ * 			@ref firmware_update_config sub-module.
+ *
+ * @details	After writing the desired data into the @ref firmware_update_config , this function will call the
+ * 			@ref prep_page_swap function to identify if there is a Flash Page of this sub-module full of data and if we
+ * 			are already writing into the next one, where if this is true, then the data of the Flash Page full of data
+ * 			will be erased.
+ *
+ * @note	The @ref firmware_update_configurations_init function has to be called first before starting to use the
+ * 			@ref firmware_update_configurations_write function so that this sub-module works as expected.
+ *
+ * @param[in] p_data	Pointer to the desired data that we want to write into the designated Flash Memory pages of the
+ * 						@ref firmware_update_config .
+ *
+ * @note	The reserved bits, of the data that the \p param points to, will be set to 1 after calling this function.
+ *
+ * @retval				FIRM_UPDT_CONF_EC_OK
+ * @retval				FIRM_UPDT_CONF_EC_NR
+ * @retval				FIRM_UPDT_CONF_EC_ERR
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date October 13, 2023.
+ */
+FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_data_t *p_data);
+
+#endif /* FIRMWARE_UPDATE_CONFIG_H_ */
+
+/** @} */
+/** @} */

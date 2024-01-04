@@ -1,0 +1,7 @@
+1699980877216	Rename resource 'Pre_Bootloader_Firmware'
+1699980884231	Rename resource 'Pre_Bootloader_Firmware1'
+1700120772920	Delete resource 'Pre_Bootloader_Firmware/Core/Inc/hm10_ctfz54182_zs040_clone_ble.h'
+1700120779156	Delete resource 'Pre_Bootloader_Firmware/Core/Inc/bl_side_firmware_update.h'
+1700120789563	Delete resource 'Pre_Bootloader_Firmware/Core/Src/bl_side_firmware_update.c'
+1700120797044	Delete resource 'Pre_Bootloader_Firmware/Core/Src/hm10_ctfz54182_zs040_clone_ble.c'
+1700121473222	Delete 5 resources

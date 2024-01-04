@@ -1,0 +1,161 @@
+/** @addtogroup bl_side_etx_ota
+ * @{
+ */
+
+/**@defgroup main_etx_ota_config ETX OTA Protocol Configuration Files
+ * @{
+ *
+ * @brief   This module contains both the default and the application ETX OTA Protocol Configuration Files.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 12, 2023.
+ */
+
+/**@file
+ * @brief	ETX OTA Protocol default configuration file for Bootloader Firmwares.
+ *
+ * @defgroup etx_ota_config Default ETX OTA Protocol Configuration File
+ * @{
+ *
+ * @brief   This file contains all the Default ETX OTA Protocol Configurations.
+ *
+ * @note    It is highly suggested not to directly edit the Configurations Settings defined in this file. Instead of
+ *          doing that whenever requiring different Configuration Settings, it is suggested to do that instead in an
+ *          additional header file named as "app_etx_ota_config.h" whose File Path should be located as a sibbling of
+ *          this @ref etx_ota_config header file. However, to enable the use of that additional header file, you will
+ *          also need to change the @ref ENABLE_APP_ETX_OTA_CONFIG define, that is located at @ref etx_ota_config, to a
+ *          value of 1.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 12, 2023.
+ */
+
+#define ETX_OTA_CONFIG_H_
+#include "hm10_ble_driver.h" // Custom Mortrack's Library to be able to send and/or receive data to/from the HM-10 BT Device.
+
+/**@defgroup default_etx_ota_firmware_update_settings Default ETX OTA Firmware Update Settings
+ * @{
+ *
+ * @brief	This file contains all the Default User-Configurable settings for the @ref bl_side_etx_ota .
+ *
+ * @note    For more details on how to use these Configuration Definitions, see the Doxygen documentation of
+ *          @ref etx_ota_config .
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	November 17, 2023.
+ */
+
+#define ENABLE_APP_ETX_OTA_CONFIG           (0)          		/**< @brief Flag used to enable the use of @ref app_etx_ota_config with a 1 or, otherwise to disable it with a 0. */
+#if ENABLE_APP_ETX_OTA_CONFIG
+#include "app_etx_ota_config.h" // This is the user custom ETX OTA configuration file that is recommended to use whenever it is desired to edit default configuration settings as defined in this @ref etx_ota_config file.
+#endif
+
+#ifndef ETX_OTA_VERBOSE
+#define ETX_OTA_VERBOSE 			        (0U)   	        	/**< @brief Flag value used to enable the compiler to take into account the code of both the @ref bl_side_etx_ota and the @ref firmware_update_config libraries that displays detailed information about the processes made inside them via @ref printf with a \c 1 . Otherwise, a \c 0 for not displaying any messages at all with @ref printf . */
+#endif
+
+#ifndef FLASH_START_ADDR
+#define FLASH_START_ADDR					(0x08000000U)		/**< @brief Start of the Flash Memory page of the STMicroelectronics medium-density devices. */
+#endif
+
+#ifndef ETX_BL_FLASH_ADDR
+#define ETX_BL_FLASH_ADDR					(0x08002000U)	    /**< @brief Designated Flash Memory start address for the Bootloader Firmware of our MCU/MPU. @note The Start Memory Location address should correspond to the Flash Memory Page number 8. */
+#endif
+
+#ifndef ETX_APP_FLASH_ADDR
+#define ETX_APP_FLASH_ADDR					(0x08008000U)   	/**< @brief Designated Flash Memory start address for the Application Firmware of our MCU/MPU. @note The Start Memory Location address should correspond to the Flash Memory Page number 32. */
+#endif
+
+#ifndef FLASH_PAGE_SIZE_IN_BYTES
+#define FLASH_PAGE_SIZE_IN_BYTES			(1024U)				/**< @brief Flash Memory page size in bytes as defined by the MCU/MPU with which this ETX OTA Protocol will be used on. */
+#endif
+
+#ifndef ETX_BL_FLASH_PAGES_SIZE
+#define ETX_BL_FLASH_PAGES_SIZE 			(24U)   			/**< @brief Designated Flash Memory pages for the Bootloader Firmware of our MCU/MPU. */
+#endif
+
+#ifndef ETX_APP_FLASH_PAGES_SIZE
+#define ETX_APP_FLASH_PAGES_SIZE 			(88U)   			/**< @brief Designated Flash Memory pages for the Application Firmware of our MCU/MPU. */
+#endif
+
+/* NOTE: The UART configurations such as its Baud rate, the Data-bits, the Parity, the Stop-bit and whether the Flow
+ *       Control is enabled or not, are all defined in the STM32CubeMx App. */
+
+#ifndef ETX_CUSTOM_HAL_TIMEOUT
+#define ETX_CUSTOM_HAL_TIMEOUT				(9000U)				/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each FLASH and UART request where the ETX OTA protocol is to be used on. @note For more details see @ref FLASH_WaitForLastOperation and @ref HAL_UART_Receive . */
+#endif
+
+/** @} */ //default_etx_ota_firmware_update_settings
+
+/**@defgroup default_fw_updt_config_settings Default Firmware Update Configuration Settings
+ * @{
+ *
+ * @brief	This file contains all the Default User-Configurable settings for the @ref firmware_update_config .
+ *
+ * @note    For more details on how to use these Configuration Definitions, see the Doxygen documentation of
+ *          @ref etx_ota_config .
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	October 17, 2023.
+ */
+#ifndef FIRMWARE_UPDATE_CONFIG_START_PAGE
+#define FIRMWARE_UPDATE_CONFIG_START_PAGE	(120U)				/**< @brief Designated Flash Memory start page for the Firmware Update Configurations sub-module. */
+#endif
+
+#ifndef FW_UPDT_CONFIG_PAGE_SIZE
+#define FW_UPDT_CONFIG_PAGE_SIZE			(2048U)				/**< @brief Designated size for a page of the @ref firmware_update_config , rather than being an actual Flash Memory page size of our MCU/MPU. */
+#endif
+
+#ifndef CUSTOM_HAL_FLASH_TIMEOUT
+#define CUSTOM_HAL_FLASH_TIMEOUT			(9000U)				/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each FLASH request in our MCU/MPU that are used in the @ref firmware_update_config . @note For more details see @ref FLASH_WaitForLastOperation . */
+#endif
+
+/** @} */ // default_fw_updt_config_settings
+
+
+/**@defgroup default_hm10_settings Default HM-10 Bluetooth Settings
+ * @{
+ *
+ * @brief	This file contains all the Default User-Configurable settings for the @ref hm10_ble .
+ *
+ * @note    For more details on how to use these Configuration Definitions, see the Doxygen documentation of
+ *          @ref etx_ota_config .
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 12, 2023.
+ */
+#ifndef HM10_DEFAULT_BLE_NAME
+#define HM10_DEFAULT_BLE_NAME           'H', 'M', '-', '1', '0', ' ','n', 'a', 'm', 'e', '_', '1'   /**< @brief Designated ASCII Code data representing the desired default BT Name that wants to be given to the HM-10 BT Device, whose length has to be @ref HM10_MAX_BLE_NAME_SIZE at the most. */
+#endif
+
+#ifndef HM10_DEFAULT_ROLE
+#define HM10_DEFAULT_ROLE	            (HM10_Role_Peripheral)								        /**< @brief Designated default BT Role that wants to be given to the HM-10 BT Device @details See @ref HM10_Role for more details. */
+#endif
+
+#ifndef HM10_DEFAULT_PIN
+#define HM10_DEFAULT_PIN   			    '0', '1', '2', '3', '4', '5'              					/**< @brief Designated ASCII Code data representing the desired default Pin Code that wants to be given to the HM-10 BT Device (all the ASCII Characters given must stand for the ASCII numbers 0, 1, ...., 9). */
+#endif
+
+#ifndef HM10_DEFAULT_PIN_CODE_MODE
+#define HM10_DEFAULT_PIN_CODE_MODE	    (HM10_Pin_Code_DISABLED)								    /**< @brief Designated default BT Pin Code Mode that wants to be given to the HM-10 BT Device @details See @ref HM10_Pin_Code_Mode for more details. */
+#endif
+
+#ifndef HM10_DEFAULT_MODULE_WORK_MODE
+#define HM10_DEFAULT_MODULE_WORK_MODE   (HM10_Transmission_Mode)								    /**< @brief Designated default BT Module Work Mode that wants to be given to the HM-10 BT Device @details See @ref HM10_Module_Work_Mode for more details. */
+#endif
+
+#ifndef HM10_CUSTOM_HAL_TIMEOUT
+#define HM10_CUSTOM_HAL_TIMEOUT	        (160U)				                						/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each UART transaction/request made between the HM-10 BT Device and our MCU/MPU. @note As a reference, the lowest value at which the author the @ref hm10_ble had unsuccessful responses was around 150 milliseconds and below that time. On the other hand, 160 milliseconds worked most of the times but it did not on some rare occasions. Therefore, it is suggested that the implementer/user of the @ref hm10_ble to assign a more convenient value for this field with which the implementer feels more confident that it will always work well. */
+#endif
+
+#ifndef HM10_RESET_CMD_DELAY
+#define HM10_RESET_CMD_DELAY	        (160U)				                						/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each UART transaction/request made between the HM-10 BT Device and our MCU/MPU. @note As a reference, the lowest value at which the author the @ref hm10_ble had unsuccessful responses was around 150 milliseconds and below that time. On the other hand, 160 milliseconds worked most of the times but it did not on some rare occasions. Therefore, it is suggested that the implementer/user of the @ref hm10_ble to assign a more convenient value for this field with which the implementer feels more confident that it will always work well. */
+#endif
+
+/** @} */ // default_fw_updt_config_settings
+
+/** @} */ // etx_ota_config
+
+/** @} */ // main_etx_ota_config
+
+/** @} */ // bl_side_etx_ota

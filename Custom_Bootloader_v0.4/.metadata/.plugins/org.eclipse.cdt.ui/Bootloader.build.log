@@ -1,0 +1,84 @@
+22:25:09 **** Incremental Build of configuration Debug for project Bootloader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/etx_ota_update.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F767xx -c -I../Core/Inc -I../Drivers/STM32F7xx_HAL_Driver/Inc -I../Drivers/STM32F7xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F7xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/etx_ota_update.d" -MT"Core/Src/etx_ota_update.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Core/Src/etx_ota_update.o"
+In file included from ../Core/Src/etx_ota_update.c:9:
+../Core/Inc/etx_ota_update.h:69:3: error: unknown type name 'uint32_t'
+   69 |   uint32_t package_size;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:70:3: error: unknown type name 'uint32_t'
+   70 |   uint32_t package_crc;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:71:3: error: unknown type name 'uint32_t'
+   71 |   uint32_t reserved1;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:72:3: error: unknown type name 'uint32_t'
+   72 |   uint32_t reserved2;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:86:3: error: unknown type name 'uint8_t'
+   86 |   uint8_t   sof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:87:3: error: unknown type name 'uint8_t'
+   87 |   uint8_t   packet_type;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:88:3: error: unknown type name 'uint16_t'
+   88 |   uint16_t  data_len;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:89:3: error: unknown type name 'uint8_t'
+   89 |   uint8_t   cmd;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:90:3: error: unknown type name 'uint32_t'
+   90 |   uint32_t  crc;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:91:3: error: unknown type name 'uint8_t'
+   91 |   uint8_t   eof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:105:3: error: unknown type name 'uint8_t'
+  105 |   uint8_t     sof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:106:3: error: unknown type name 'uint8_t'
+  106 |   uint8_t     packet_type;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:107:3: error: unknown type name 'uint16_t'
+  107 |   uint16_t    data_len;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:109:3: error: unknown type name 'uint32_t'
+  109 |   uint32_t    crc;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:110:3: error: unknown type name 'uint8_t'
+  110 |   uint8_t     eof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:124:3: error: unknown type name 'uint8_t'
+  124 |   uint8_t     sof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:125:3: error: unknown type name 'uint8_t'
+  125 |   uint8_t     packet_type;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:126:3: error: unknown type name 'uint16_t'
+  126 |   uint16_t    data_len;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:127:3: error: unknown type name 'uint8_t'
+  127 |   uint8_t     *data;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:141:3: error: unknown type name 'uint8_t'
+  141 |   uint8_t   sof;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:142:3: error: unknown type name 'uint8_t'
+  142 |   uint8_t   packet_type;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:143:3: error: unknown type name 'uint16_t'
+  143 |   uint16_t  data_len;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:144:3: error: unknown type name 'uint8_t'
+  144 |   uint8_t   status;
+      |   ^~~~~~~
+../Core/Inc/etx_ota_update.h:145:3: error: unknown type name 'uint32_t'
+  145 |   uint32_t  crc;
+      |   ^~~~~~~~
+../Core/Inc/etx_ota_update.h:146:3: error: unknown type name 'uint8_t'
+  146 |   uint8_t   eof;
+      |   ^~~~~~~
+make: *** [Core/Src/subdir.mk:37: Core/Src/etx_ota_update.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+
+22:25:09 Build Failed. 26 errors, 0 warnings. (took 462ms)
+

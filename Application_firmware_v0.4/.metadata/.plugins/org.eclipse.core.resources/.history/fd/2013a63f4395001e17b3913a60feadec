@@ -1,0 +1,599 @@
+// TODO: Change this library so that the delays are now made inside the library and so that they no longer are needed to be implemented externally.
+/**@file
+ * @brief	HM-10 Bluetooth Device's driver Header file.
+ *
+ * @defgroup hm10_ble HM-10 Bluetooth module
+ * @{
+ *
+ * @brief   This module provides the functions, definitions, structures and variables required to enable an
+ *          STMicroelectronics MCU/MPU's application to be able to Configure, Initialize and Send and/or Receive data
+ *          to/from a AT-09 CTFZ54812 ZS-040 Bluetooth Device, which is actually a clone of the HM-10 Bluetooth Device.
+ *
+ * @details As for now, this @ref hm10_ble provides you with the necessary things so that you can configure and
+ *          use an AT-09 Clone BLE Device in peripheral mode only.
+ *
+ * @note    Although you can also configure it as Central mode with this module, all the available functions,
+ *          definitions and structures to use that mode have not yet been implemented. The reason for this is because
+ *          during the tests conducted with that Device, it was identified that a lot of the required functionalities to
+ *          properly use the device in its Central Mode either do not work in the Clone Model (which does work in the
+ *          Original Model) or the way in which it can be made to work could not be figured our in this work.
+ * @note    Among the several functions required and that the Clone Model lacks for the Central Mode to work properly,
+ *          the most important one was that an AT-09 in Central Mode can connect to another AT-09 in Slave Mode, but no
+ *          successful data transfer could be achieved after that (only data transfer from the Central Mode device to
+ *          the Slave Mode device was attempted), making the use of this module almost to make no sense. These data
+ *          transfers were also attempted from an original HM-10 Device in Central Mode towards an AT-09 in Slave Mode,
+ *          but these attempts were also unsuccessful.Yet, only by using a Mobile App such as BLE Terminal or LightBlue,
+ *          could these data transfers be achieved successfully.
+ * @note    As for other functions required and that did not work we have that you will not be able to disconnect the
+ *          AT-09 Clone BLE Device after connecting it with another BLE Device (regardless if your Device is in
+ *          Peripheral or in Central Mode). However, you could make an external circuitry to electrically shut-down and
+ *          then turn on the device to reset it in order to force it to disconnect. Despite this, whenever using Central
+ *          Mode, this Clone Device will not provide sufficient information so that the user, or even the implementer,
+ *          can guess to what slave BLE Device your Central mode BLE Device should connect to, especially in the case
+ *          that it was intended for it to connect with new BLE devices overtime for a certain type of application.
+ *          However, it could work out for you if you would, perhaps make a particular and specific system in which you
+ *          plan to always connect to the same slave BLE Device and where you already know before-hand the address of
+ *          that slave BLE Device of interest, unless the Clone BLE Device in Central Mode that you have simply does not
+ *          work for transmitting data to a slave device, which is what happened to me. However, according to several
+ *          sources I reviewed on the internet, some Clone BLE Devices can transmit data to a slave device once a BLE
+ *          Connection has been made.
+ * @note    Despite all this, you should keep in mind that you will not be able to connect your Central Mode BLE Device
+ *          with more than one slave device. This is not only because of the limitation of not being able to disconnect
+ *          them from the Central Mode Device in the case of not disposing of an external circuit as previously
+ *          mentioned, but also because the Clone BLE device in Central mode automatically reconnects to the last
+ *          connected slave BLE Device. This means, that your only choice there would be to turn off the Clone Slave
+ *          Device before electrically resetting the Clone BLE Device so that the Central Clone Device does not
+ *          automatically reconnect to the slave device, where you will have to either send a command to the Central
+ *          Device to make it stop connecting to the Slave Device (AT command not yet implemented here) or to change the
+ *          configurations of your Central Device to Default (AT command that not yet been implemented here) and then
+ *          reconfigure it again to connect to another slave BLE Device.
+ * @note    Nonetheless, because these complications really limit the use of this HM-10 Clone BLE Device in Central
+ *          mode, the author of this @ref hm10_ble suggests using this Clone Model only in Peripheral Mode, and
+ *          whenever you want to transfer data between these type of devices, then either do it with a
+ *          <a href=http://www.jnhuamao.cn/bluetooth.asp>Genuine HM-10 BLE Device</a> in order to guarantee that it will
+ *          work or
+ *          <a href=https://www.youtube.com/watch?v=ez3491-v8Og>try flashing the Genuine Firmware into a HM-10 Clone BLE Device</a>
+ *          instead.
+ * @note    On the other hand, make sure to supply to the HM-10 Clone BLE Device with the right Voltage Power Supply,
+ *          which is 3.6v-6v (I used 5v and it worked correctly with it) so that the BLE module of that device's PCB
+ *          board works correctly. This is very important, because you could get the wrong idea that this Device can
+ *          work with a lower voltage (e.g., I tried with 3.3v) because its UART module can work with even 3.3v, but its
+ *          actual BLE module will not work most of the time and you will have a very rough time trying to connect with
+ *          the device and to make it work correctly.
+ * @note    Another thing to highlight is that this @ref hm10_ble has included the "stm32f1xx_hal.h" header file
+ *          to be able to use the UART in this module. However, this header file is specifically meant for the STM32F1
+ *          series devices. If yours is from a different type, then you will have to substitute the right one here for
+ *          your particular STMicroelectronics device. However, if you cant figure out what the name of that header file
+ *          is, then simply substitute that line of code from this @ref hm10_ble by: #include "main.h"
+ *
+ * @details While it is not necessary to use all the entirety of the functions provided to use the HM-10 Clone BLE
+ *          Device in peripheral mode, the following code example demonstrate how to use them in case that its
+ *          implementer requires an application reference:
+ *
+ * @code
+  #include <stdio.h>	// Library from which "printf" is located at.
+  #include <stdint.h> // This library contains the aliases: uint8_t, uint16_t, uint32_t, etc.
+  #include "AT-09_zs040_ble_driver.h" // This custom Mortrack's library contains the AT-09 zs040 BLE Driver Library.
+
+  // Initializing the HM-10 CTFZ54812 ZS-040 Bluetooth Clone module.
+  init_hm10_module(&huart3); // Initializing the HM-10 CTFZ54812 ZS-040 Bluetooth Clone module with the UART of your preference, where I used UART3 as an example.
+  const uint16_t GPIO_hm10_state_Pin = GPIO_PIN_15; // Label for the GPIO Pin 15 towards which the GPIO Pin PC15 in Input Mode is at, which is used to read the STATE Pin of the AT-09 BLE Device. The following are the possible values of that STATE Pin:<br><br>* 0 (i.e., Low State) = The HM-10 Clone BLE Device is not connected with an external BLE Device.<br>* 1 (i.e., High State) = The HM-10 Clone BLE Device is currently connected with an external BLE Device.
+  HM10_Status ret; // Local variable used to hold the exception code values returned by functions of the HM-10 CTFZ54812 ZS-040 Bluetooth Clone module.
+
+  // Sending Test Command.
+  printf("DEBUG: Running the send_hm10_test_cmd() function.\r\n");
+  ret = send_hm10_test_cmd();
+  printf("DEBUG: send_hm10_test_cmd() function returned code = %d.\r\n", ret);
+
+  // Setting BLE Name in HM-10 Clone BLE Device.
+  printf("DEBUG: Running the set_hm10_name() function.\r\n");
+  uint8_t name_size = 8;
+  uint8_t name[] = {'C', 'e', 's', 'a', 'r', 'B', 'L', 'E', 'z', 'x', 'y', 'w'}; // Remember that max BLE Name size is @ref HM10_MAX_BLE_NAME_SIZE .
+  ret = set_hm10_name(name, name_size); // Setting the BLE Name up to the first 8 ASCII Characters contained in the "name" array.
+  printf("DEBUG: set_hm10_name() function returned code = %d.\r\n", ret);
+
+  // Delay after setting BLE Name.
+  printf("Running 0.5 seconds delay...\r\n");
+  HAL_Delay(500);
+  printf("0.5 seconds delay have elapsed.\r\n");
+
+  // Getting BLE Name from HM-10 Clone BLE Device.
+  printf("DEBUG: Running the get_hm10_name() function.\r\n");
+  uint8_t getname_size = 0;
+  uint8_t getname[HM10_MAX_BLE_NAME_SIZE] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
+  ret = get_hm10_name(getname, &getname_size); // Should get back the BLE Name of "CesarBLE".
+  printf("DEBUG: get_hm10_name() function returned code = %d.\r\n", ret);
+  printf("DEBUG: getname = ");
+  for (int i=0; i<getname_size; i++)
+  {
+    printf("%c", getname[i]);
+  }
+  printf("_ASCII, where the size of the obtained BLE Name is %d.\r\n", getname_size);
+
+  // Setting Role in BLE Device.
+  printf("DEBUG: Running the set_hm10_role() function.\r\n");
+  ret = set_hm10_role(HM10_Role_Peripheral);
+  printf("DEBUG: set_hm10_role() function returned code = %d.\r\n", ret);
+
+  // Delay after setting BLE Name.
+  printf("Running 0.5 seconds delay...\r\n");
+  HAL_Delay(500);
+  printf("0.5 seconds delay have elapsed.\r\n");
+
+  // Getting Role from BLE Device.
+  uint8_t ble_role = 7; // Setting an initial value that should not be within the possibly returned values by @ref get_hm10_role just to make sure that it works correctly.
+  printf("DEBUG: Running the get_hm10_role() function.\r\n");
+  ret = get_hm10_role(&ble_role);
+  printf("DEBUG: get_hm10_role() function returned code = %d.\r\n", ret);
+  printf("DEBUG: ble_role value obtained = %c_ASCII\r\n", ble_role);
+
+  // Setting a Pin in the BLE Device.
+  printf("DEBUG: Running the set_hm10_pin() function.\r\n");
+  uint8_t set_pin[HM10_PIN_VALUE_SIZE] = {'0', '0', '1', '1', '2', '2'};
+  ret = set_hm10_pin(set_pin);
+  printf("DEBUG: set_hm10_pin() function returned code = %d.\r\n", ret);
+
+  // Delay after setting BLE Name.
+  printf("Running 0.5 seconds delay...\r\n");
+  HAL_Delay(500);
+  printf("0.5 seconds delay have elapsed.\r\n");
+
+  // Getting Pin from BLE Device.
+  printf("DEBUG: Running the get_hm10_pin() function.\r\n");
+  uint8_t get_pin[HM10_PIN_VALUE_SIZE] = {'X', 'X', 'X', 'X', 'X', 'X'};
+  ret = get_hm10_pin(get_pin);
+  printf("DEBUG: get_hm10_pin() function returned code = %d.\r\n", ret);
+  printf("DEBUG: get_pin = ");
+  for (int i=0; i<HM10_PIN_VALUE_SIZE; i++)
+  {
+    printf("%c", get_pin[i]);
+  }
+  printf("_ASCII\r\n");
+
+  // Setting a Pin Code Mode in the BLE Device.
+  printf("DEBUG: Running the set_hm10_pin_code_mode() function.\r\n");
+  ret = set_hm10_pin_code_mode(HM10_Pin_Code_DISABLED);
+  printf("DEBUG: set_hm10_pin_code_mode() function returned code = %d.\r\n", ret);
+
+  // Delay after setting BLE Name.
+  printf("Running 0.5 seconds delay...\r\n");
+  HAL_Delay(500);
+  printf("0.5 seconds delay have elapsed.\r\n");
+
+  // Getting the Pin Code Mode from the BLE Device.
+  printf("DEBUG: Running the get_hm10_pin_code_mode() function.\r\n");
+  HM10_Pin_Code_Mode pin_code_mode;
+  ret = get_hm10_pin_code_mode(&pin_code_mode);
+  printf("DEBUG: get_hm10_pin_code_mode() function returned code = %d.\r\n", ret);
+  printf("DEBUG: pin_code_mode = %c_ASCII\r\n", pin_code_mode);
+
+  // Resetting the BLE Device.
+  printf("DEBUG: Running the send_hm10_reset_cmd() function.\r\n");
+  ret = send_hm10_reset_cmd();
+  printf("DEBUG: send_hm10_reset_cmd() function returned code = %d.\r\n", ret);
+
+  // Delay after setting BLE Name.
+  printf("Running 0.5 seconds delay...\r\n");
+  HAL_Delay(500);
+  printf("0.5 seconds delay have elapsed.\r\n");
+
+  // Sending Test Command twice to wake up BLE Device from Reset.
+  printf("DEBUG: Running the send_hm10_test_cmd() function.\r\n");
+  ret = send_hm10_test_cmd();
+  printf("DEBUG: send_hm10_test_cmd() function returned code = %d.\r\n", ret);
+  printf("DEBUG: Running the send_hm10_test_cmd() function.\r\n");
+  ret = send_hm10_test_cmd();
+  printf("DEBUG: send_hm10_test_cmd() function returned code = %d.\r\n", ret);
+
+  // Receiving and Sending data from/to a Central BLE Device.
+  uint8_t ble_ota_data[1024]; // This Local Variable will hold the data send from the Central BLE Device to our Peripheral BLE Device, up to a maximum of 1024 ASCI Characters at a time.
+  uint8_t ble_ota_byte = 0; // This Local Variable will hold the current value to be send to the Central BLE Device from our Peripheral BLE Device.
+  uint16_t size = 0; // This Local Variable will serve as a counter of the bytes that have been received in our Peripheral BLE Device from the Central BLE Device at a time.
+  do
+  {
+	  printf("DEBUG: Waiting for BLE Connection...\r\n");
+	  // NOTE:  @ref GPIO_hm10_state_Pin points to the Input GPIO Pin of our MCU that is connected to the STATE Pin
+	  //		of our HM-10 Clone BLE Device (that Pin will have a High State if our BLE Device is connected with
+	  //		another BLE Device and, a Low State if otherwise).
+	  while(HAL_GPIO_ReadPin(GPIOA, GPIO_hm10_state_Pin) != GPIO_PIN_SET);
+	  printf("DEBUG: BLE Connection has been established.\r\n");
+	  printf("DEBUG: Waiting for BLE receiving and/or sending data OTA...\r\n");
+	  while (HAL_GPIO_ReadPin(GPIOA, GPIO_hm10_state_Pin) == GPIO_PIN_SET)
+	  {
+		  // Receiving up to 1024 ASCI characters of data OTA at a time (i.e., uninterruptedly).
+		  if (get_hm10_ota_data(ble_ota_data, 1, 1000) == HM10_EC_OK)
+		  {
+			  size = 0;
+			  do
+			  {
+				  size++;
+			  }
+			  while(get_hm10_ota_data(&ble_ota_data[size], 1, 1000) == HM10_EC_OK);
+
+			  // Showing received data via UART.
+			  printf("\r\n\r\n");
+			  printf("DEBUG: The BLE data received OTA with a size of %d is the following:\r\n", size);
+			  for (uint16_t i=0; i<size-1; i++)
+			  {
+				  printf("0x%08X, ", ble_ota_data[i]);
+			  }
+			  printf("0x%08X.\r\n", ble_ota_data[size-1]);
+			  printf("\r\n\r\n");
+
+			  // Sending some custom data OTA to the Central BLE Device after having received something from it.
+			  // NOTE:  The following code will send several numbers from 0 up to 255 and will repeat again from 0 to 255
+				//        again and again until 1024 bytes have been send back to the master BLE device as a response (this
+				//        is just for demonstrative purposes to see that we can send and receive data via the BLE device).
+			  ble_ota_byte = 0;
+			  for (uint16_t i=0; i<1024; i++)
+			  {
+				  ble_ota_byte++;
+				  ret = send_hm10_ota_data(&ble_ota_byte, 1, 1000);
+				  if (ret != HM10_EC_OK)
+				  {
+					  printf("DEBUG-ERROR: Data could not be send OTA.");
+					  break;
+				  }
+			  }
+		  }
+	  }
+	  printf("DEBUG: BLE Connection has been lost.\r\n");
+  }
+  while(1);
+ * @endcode
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023.
+ */
+
+#ifndef HM10_BLE_DRIVER_H_
+#define HM10_BLE_DRIVER_H_
+
+#include "stm32f1xx_hal.h" // This is the HAL Driver Library for the STM32F1 series devices. If yours is from a different type, then you will have to substitute the right one here for your particular STMicroelectronics device. However, if you cant figure out what the name of that header file is, then simply substitute this line of code by: #include "main.h"
+#include <stdio.h>	// Library from which "printf" is located at.
+#include "etx_ota_config.h" // Custom Library used for configuring the ETX OTA protocol.
+#include <stdint.h> // This library contains the aliases: uint8_t, uint16_t, uint32_t, etc.
+
+#define HM10_MAX_BLE_NAME_SIZE          (12)		/**< @brief Total maximum bytes that the BLE Name of the HM-10 BLE Device can have. */
+#define HM10_PIN_VALUE_SIZE             (6)			/**< @brief Length in bytes of the Pin value in a HM-10 BLE device. */
+
+/**@brief	HM-10 Exception codes.
+ *
+ * @details	These Exception Codes are returned by the functions of the @ref hm10_ble to indicate the resulting status of
+ *          having executed the process contained in each of those functions. For example, to indicate that the process
+ *          executed by a certain function was successful or that it has failed.
+ */
+typedef enum
+{
+	HM10_EC_OK      = 0U,    //!< HM-10 Process was successful. @note The code from the @ref HAL_ret_handler function contemplates that this value will match the one given for \c HAL_OK from @ref HAL_StatusTypeDef .
+	HM10_EC_STOP    = 1U,    //!< HM-10 Process has been stopped.
+	HM10_EC_NR	    = 2U,	 //!< HM-10 Process has concluded with no response from HM-10 Device.
+	HM10_EC_NA      = 3U,    //!< HM-10 Data received or to be received Not Applicable.
+	HM10_EC_ERR     = 4U     //!< HM-10 Process has failed.
+} HM10_Status;
+
+/**@brief	HM-10 BLE Role definitions.
+ *
+ * @details These definitions define the available BLE Roles that we can use for our HM-10 BLE Device.
+ *
+ * @note	In the Bluetooth Protocol, devices may play specific roles that dictate how they will interact within the
+ *          Bluetooth ecosystem. The two primary roles, and the ones supported by the HM-10 BLE Devices are the
+ *          Peripheral and Central Roles.
+ * @note    <b>Peripheral Devices</b> are the devices that advertise their presence to other devices in their vicinity
+ *          and that, if they establish a BLE connection with a Central device, they will provide data (i.e., They act
+ *          as "servers") in that BLE communication framework.
+ * @note    <b>Central Devices</b> are the devices that scan for Peripheral Devices, initiate connections with them and
+ *          consume the data provided by Peripheral Devices (i.e., Central Devices act as "clients").
+ */
+typedef enum
+{
+	HM10_Role_Peripheral	= 48U,	//!< HM-10 Peripheral Role (i.e., Slave mode). @note \f$48_d = 0_{ASCII}\f$.
+	HM10_Role_Central  	    = 49U   //!< HM-10 Central Role (i.e., Master mode). @note \f$49_d = 1_{ASCII}\f$.
+} HM10_Role;
+
+/**@brief	HM-10 Pin Code mode definitions.
+ *
+ * @details These definitions define the available Pin Code modes in a HM-10 BLE Device.
+ *
+ * @note	In the Bluetooth Protocol, there is not really a Pin Code mode. However, within the HM-10 BLE Device in
+ *          particular, there is such a thing. For these type of BLE Devices, there are two Pin Code modes during any
+ *          bonding process that they may have with other BLE Devices: 1) Pin Code enabled, or 2) Pin Code disabled.
+ */
+typedef enum
+{
+	HM10_Pin_Code_DISABLED  	= 48U,   //!< HM-10 Pin Code disabled during a bonding process with other BLE devices. @note \f$48_d = 0_{ASCII}\f$.
+	HM10_Pin_Code_ENABLED		= 50U	//!< HM-10 Pin Code enabled during a bonding process with other BLE devices. @note \f$50_d = 2_{ASCII}\f$.
+} HM10_Pin_Code_Mode;
+
+/**@brief	GPIO Definition parameters structure.
+ *
+ * @details This contains all the fields required to associate a certain GPIO pin to either the STATE pin of the HM-10
+ *          BLE Device Hardware or the MCU pin from which it can be requested to reset the settings of the HM-10 BLE
+ *          Device.
+ */
+typedef struct __attribute__ ((__packed__)) {
+	GPIO_TypeDef *GPIO_Port;	//!< Type Definition of the GPIO peripheral port to which this @ref GPIO_def_t structure will be associated with.
+	uint16_t GPIO_Pin;			//!< Pin number of the GPIO peripheral from to this @ref GPIO_def_t structure will be associated with.
+} GPIO_def_t;
+
+/**@brief	Sends a Test Command to the HM-10 BLE Device.
+ *
+ * @note    Whenever it is desired to know if the HM-10 BLE Device is active and/or operational, it is highly suggested
+ *          to first call this function once to verify that.
+ * @note    If the HM-10 BLE Device is working in Central Mode and you desire to disconnect that BLE Device from a
+ *          currently on-going BLE connection, then call this function once to achieve that.
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @retval	HM10_EC_OK  if the Test Command was successfully sent to the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 05, 2023
+ */
+HM10_Status send_hm10_test_cmd();
+
+// TODO: Pending to confirm that the first note is correct (that was accurate with the Clone Device, but I still dont know if it is the same with the Original Model).
+/**@brief	Sends a Reset Command to the HM-10 BLE Device.
+ *
+ * @note	After calling this function, a 500 milliseconds of time must elapse before sending any other command to the
+ *          HM-10 BLE Device (i.e., the implementer must either be sure that this time elapses or to call a delay
+ *          function for that amount of time). In addition, it is also required to call the @ref send_hm10_test_cmd
+ *          function twice in order to wake up the HM-10 Clone BLE Device after applying a reset to it. Note that the
+ *          first time you call the @ref send_hm10_test_cmd function, it is expected for it to return a
+ *          @ref HM10_EC_NR Exception Code, but the second time you call that function, it should return a
+ *          @ref HM10_EC_OK Exception Code. If this is not the case, then something else is wrong with your HM-10 BLE
+ *          Device.
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @retval	HM10_EC_OK	if the Reset Command was successfully sent to the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 05, 2023
+ */
+HM10_Status send_hm10_reset_cmd();
+
+// TODO: Pending to confirm that the first note is correct (that was accurate with the Clone Device, but I still dont know if it is the same with the Original Model).
+/**@brief	Sends a Name Command to the HM-10 BLE Device and sets a desired BLE Name to that Device.
+ *
+ * @note	After calling this function, a 500 milliseconds of time must elapse before sending any other command to the
+ *          HM-10 BLE Device (i.e., the implementer must either be sure that this time elapses or to call a delay
+ *          function for that amount of time). In addition, it is important to note that the first command attempt,
+ *          after those 500 milliseconds, will be ignored by the HM-10 BLE Device. However, all the functions
+ *          contained in this header file contemplate attempting to send the corresponding commands two times due to
+ *          this explained circumstance (i.e., the implementer does not need to call these functions twice).
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[in] hm10_name Pointer to the ASCII Code data representing the desired BLE Name that wants to be given to the
+ *                      HM-10 BLE Device.
+ * @param size          Length in bytes of the name towards which the \p hm10_name param points to, which must be
+ *                      @ref HM10_MAX_BLE_NAME_SIZE at the most.
+ *
+ * @retval	HM10_EC_OK	if the Name Command was successfully sent to the HM-10 BLE Device and if the desired name was
+ *                      successfully set into the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status set_hm10_name(uint8_t *hm10_name, uint8_t size);
+
+/**@brief	Gets the Name of the HM-10 BLE Device.
+ *
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[out] hm10_name    Pointer to the ASCII Code data representing the BLE Name that the HM-10 Clone BLE Device
+ *                          has.
+ * @param[out] size         Length in bytes of the name towards which the \p hm10_name param points to.
+ *
+ * @retval	HM10_EC_OK	if the BLE Name was successfully received from the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status get_hm10_name(uint8_t *hm10_name, uint8_t *size);
+
+// TODO: Pending to confirm that the first note is correct (that was accurate with the Clone Device, but I still dont know if it is the same with the Original Model).
+/**@brief	Sends a Role Command to the HM-10 BLE Device and sets a desired BLE Role to that Device.
+ *
+ * @note	After calling this function, a 500 milliseconds of time must elapse before sending any other command to the
+ *          HM-10 BLE Device (i.e., the implementer must either be sure that this time elapses or to call a delay
+ *          function for that amount of time). In addition, it is important to note that the first command attempt,
+ *          after those 500 milliseconds, will be ignored by the HM-10 BLE Device. However, all the functions
+ *          contained in this header file contemplate attempting to send the corresponding commands two times due to
+ *          this explained circumstance (i.e., the implementer does not need to call these functions twice).
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param	ble_role	BLE Role that wants to be set in the HM-10 BLE Device.
+ *
+ * @retval	HM10_EC_OK	if the Role Command was successfully sent to the HM-10 BLE Device and if the desired role was
+ *                      successfully set on the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status set_hm10_role(HM10_Role ble_role);
+
+/**@brief	Gets the Role of the HM-10 BLE Device.
+ *
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[out] ble_role	Pointer to the 1 byte of data into which this function will write the BLE Role value given by
+ *                      the HM-10 BLE Device. Note that the possible values written are @ref HM10_Role .
+ *
+ * @retval	HM10_EC_OK	if the BLE Role was successfully received from the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status get_hm10_role(HM10_Role *ble_role);
+
+// TODO: Pending to confirm that the first note is correct (that was accurate with the Clone Device, but I still dont know if it is the same with the Original Model).
+/**@brief	Sends a Pin Command to the HM-10 BLE Device and sets a desired BLE Pin to that Device.
+ *
+ * @note	After calling this function, a 500 milliseconds of time must elapse before sending any other command to the
+ *          HM-10 BLE Device (i.e., the implementer must either be sure that this time elapses or to call a delay
+ *          function for that amount of time). In addition, it is important to note that the first command attempt,
+ *          after those 500 milliseconds, will be ignored by the HM-10 BLE Device. However, all the functions
+ *          contained in this header file contemplate attempting to send the corresponding commands two times due to
+ *          this explained circumstance (i.e., the implementer does not need to call these functions twice).
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[in] pin	Pointer to the ASCII Code data representing the desired BLE Pin that wants to be given to the HM-10
+ *                  Clone BLE Device. This pin data must consist of exactly @ref HM10_PIN_VALUE_SIZE bytes of data,
+ *                  where each byte must stand for any number character in ASCII Code.
+ *
+ * @retval	HM10_EC_OK	if the Pin Command was successfully sent to the HM-10 BLE Device and if the desired pin was
+ *                      successfully set on the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status set_hm10_pin(uint8_t *pin);
+
+/**@brief	Gets the Pin of the HM-10 BLE Device.
+ *
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[out] pin	Pointer to the ASCII Code data representing the received BLE Pin from the HM-10 BLE Device.
+ *                  This pin data consists of a size of exactly @ref HM10_PIN_VALUE_SIZE bytes, where each byte must
+ *                  stand for any number character in ASCII Code.
+ *
+ * @retval	HM10_EC_OK	if the BLE Pin was successfully received from the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status get_hm10_pin(uint8_t *pin);
+
+// TODO: Pending to confirm that the first note is correct (that was accurate with the Clone Device, but I still dont know if it is the same with the Original Model).
+/**@brief	Sends a Type Command to the HM-10 BLE Device and sets a desired Pin Code Mode to that Device.
+ *
+ * @note	After calling this function, a 500 milliseconds of time must elapse before sending any other command to the
+ *          HM-10 BLE Device (i.e., the implementer must either be sure that this time elapses or to call a delay
+ *          function for that amount of time). In addition, it is important to note that the first command attempt,
+ *          after those 500 milliseconds, will be ignored by the HM-10 BLE Device. However, all the functions
+ *          contained in this header file contemplate attempting to send the corresponding commands two times due to
+ *          this explained circumstance (i.e., the implementer does not need to call these functions twice).
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param pin_code_mode Pin Code Mode that is desired to set in the HM-10 BLE Device.
+ *
+ * @retval	HM10_EC_OK	if the Type Command was successfully sent to the HM-10 BLE Device and if the desired Pin Code
+ *                      Mode was successfully set on the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status set_hm10_pin_code_mode(HM10_Pin_Code_Mode pin_code_mode);
+
+/**@brief	Gets the Pin Code Mode that is currently configured in the HM-10 BLE Device.
+ *
+ * @note 	This function will reset the value of @ref resp_attempts attempts to zero once before attempting to send the
+ *          desired Command to the HM-10 BLE Device. As a result, this function will attempt two times to effectively
+ *          send this HM-10 Command at the most in the case that the first attempt is unsuccessful.
+ *
+ * @param[out] pin_code_mode    @ref HM10_Pin_Code_Mode Type Pointer to the Pin Code Mode that the HM-10 BLE Device
+ *                              currently has configured in it.
+ *
+ * @retval	HM10_EC_OK	if the Pin Code Mode was successfully received from the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status get_hm10_pin_code_mode(HM10_Pin_Code_Mode *pin_code_mode);
+
+/**@brief   Sends some desired data Over the Air (OTA) via the HM-10 BLE Device to whatever other BLE Device it is
+ *          connected to Point-to-Point, if there is such a connection.
+ *
+ * @note    If there is no BLE connection between the HM-10 BLE Device and any other BLE Device, the HM-10 BLE Device
+ *          will do nothing.
+ *
+ * @param[out] ble_ota_data Pointer to the data that is desired to send OTA via the HM-10 BLE Device.
+ * @param size              Length in bytes of the data towards which the \p ble_ota_data param points to.
+ * @param timeout           Timeout duration for waiting to send the requested data OTA via the HM-10 BLE Device.
+ *
+ * @retval	HM10_EC_OK	if the requested data was successfully send OTA via the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if there was no response from the HM-10 BLE Device whenever attempting to send the requested
+ *                      data OTA.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status send_hm10_ota_data(uint8_t *ble_ota_data, uint16_t size, uint32_t timeout);
+
+/**@brief   Gets the HM-10 Device's BLE data that is received Over the Air (OTA), if there is any within the
+ *          specified timeout.
+ *
+ * @note    Remember that whenever sending data from a BLE Device in Central mode to the HM-10 BLE Device with
+ *          which this @ref hm10_ble is being used on, the default Service Name is 0xFFE0 (which is modifiable
+ *          with the AT+UUID Command that has yet to be implemented in this module) and the default Characteristic Name
+ *          is 0xFFE1 (which is modifiable with the AT+CHAR Command that has yet to be implemented in this module).
+ *
+ * @param[out] ble_ota_data Pointer to the Memory Address into which the received data from the HM-10 BLE Device will be
+ *                          stored.
+ * @param size              Length in bytes of the BLE data that is expected to be received OTA from the HM-10 BLE
+ *                          Device.
+ * @param timeout           Timeout duration for waiting to receive BLE data OTA from the HM-10 BLE Device.
+ *
+ * @retval	HM10_EC_OK	if some BLE data was successfully received OTA from the HM-10 BLE Device.
+ * @retval  HM10_EC_NR  if no BLE data was received OTA from the HM-10 BLE Device.
+ * @retval  HM10_EC_ERR otherwise.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+HM10_Status get_hm10_ota_data(uint8_t *ble_ota_data, uint16_t size, uint32_t timeout);
+
+/**@brief	Initializes the @ref hm10_ble in order to be able to use its provided functions.
+ *
+ * @details This function stores in the @ref p_huart Global Static Pointer the address of the UART Handle Structure of
+ *          the UART that is desired to be used by the @ref hm10_ble to send/receive data to/from the HM-10 BLE Device.
+ *
+ * @param[in] huart	Pointer to the UART Handle Structure of the UART that it is desired to use in the @ref hm10_ble to
+ *                  send/receive data to/from the HM-10 BLE Device.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	December 06, 2023
+ */
+void init_hm10_module(UART_HandleTypeDef *huart);
+
+#endif /* HM10_BLE_DRIVER_H_ */
+
+/** @} */

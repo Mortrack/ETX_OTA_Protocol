@@ -1,0 +1,40 @@
+/** @addtogroup app_side_etx_ota
+ * @{
+ */
+
+/** @addtogroup main_etx_ota_config
+ * @{
+ */
+
+/**@file
+ *
+ * @defgroup app_etx_ota_config Application ETX OTA Protocol Configuration File
+ * @{
+ *
+ * @brief   This file should contain all the Application ETX OTA Protocol Configurations made by the user/implementor.
+ *
+ * @note    It is highly suggested not to directly edit the Configurations Settings defined in this @ref etx_ota_config
+ *          . Instead of doing that whenever requiring different Configuration Settings, it is suggested to do that
+ *          instead in this additional header file named as "app_etx_ota_config.h" whose File Path should be located as
+ *          a sibling of the @ref etx_ota_config . However, to enable the use of this @ref app_etx_ota_config , you will
+ *          also need to change the @ref ENABLE_APP_ETX_OTA_CONFIG define that is located at @ref etx_ota_config , to a
+ *          value of 1.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	November 26, 2023.
+ */
+
+#ifndef APP_ETX_OTA_CONFIG
+#define APP_ETX_OTA_CONFIG
+
+//#define ETX_OTA_VERBOSE 			        (1)   	        					/**< @brief Flag value used to enable the compiler to take into account the code of the @ref etx_ota_protocol_host library that displays detailed information in the terminal window about the processes made in this library with a \c 1 . Otherwise, a \c 0 for only displaying minimum details of general processes only. */
+#define CUSTOM_DATA_MAX_SIZE				(2048U)								/**< @brief	Designated maximum length in bytes for a possibly received ETX OTA Custom Data (i.e., @ref firmware_update_config_data_t::data ). */
+#define HM10_CLONE_DEFAULT_PIN_CODE_MODE	(HM10_Clone_Pin_Code_ENABLED)		/**< @brief Designated default BLE Pin Code Mode that wants to be given to the HM-10 Clone BLE Device @details See @ref HM10_Clone_Pin_Code_Mode for more details. */
+
+#endif /* APP_ETX_OTA_CONFIG_H_ */
+
+/** @} */ // app_etx_ota_config
+
+/** @} */ // main_etx_ota_config
+
+/** @} */ // app_side_etx_ota

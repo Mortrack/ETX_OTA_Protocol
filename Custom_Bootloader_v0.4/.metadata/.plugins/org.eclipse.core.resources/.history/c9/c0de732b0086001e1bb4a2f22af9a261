@@ -1,0 +1,128 @@
+/** @addtogroup pre_bl_side_firmware_update
+ * @{
+ */
+
+#include "pre_bl_side_firmware_update.h"
+#include "stm32f1xx_hal.h" // This is the HAL Driver Library for the STM32F1 series devices. If yours is from a different type, then you will have to substitute the right one here for your particular STMicroelectronics device. However, if you cant figure out what the name of that header file is, then simply substitute this line of code by: #include "main.h"
+//#include <stdio.h>	// Library from which "printf()" is located at.
+
+/**@brief	Gets the corresponding @ref ETX_OTA_Status value depending on the given @ref HAL_StatusTypeDef value.
+ *
+ * @param HAL_status	HAL Status value (see @ref HAL_StatusTypeDef ) that wants to be converted into its equivalent
+ * 						of a @ref ETX_OTA_Status value.
+ *
+ * @retval				ETX_OTA_EC_NR if \p HAL_status param equals \c HAL_BUSY or \c ETX_CUSTOM_HAL_TIMEOUT .
+ * @retval				ETX_OTA_EC_ERR if \p HAL_status param equals \c HAL_ERROR .
+ * @retval				HAL_status param otherwise.
+ *
+ * @note	For more details on the returned values listed, see @ref ETX_OTA_Status and @ref HAL_StatusTypeDef .
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date September 26, 2023.
+ */
+static ETX_OTA_Status HAL_ret_handler(HAL_StatusTypeDef HAL_status);
+
+ETX_OTA_Status install_bl_stored_in_app_fw(firmware_update_config_data_t *p_fw_config)
+{
+	/** <b>Local variable ret:</b> Return value of a @ref ETX_OTA_Status function function type. */
+	uint8_t  ret;
+	/**	<b>Local variable bytes_flashed:</b> Indicator of how many bytes of the identified Bootloader Firmware Image pending to be installed, if any, have been written into the designated Flash Memory of the Bootloader Firmware. */
+	uint16_t bytes_flashed = 0;
+	/**	<b>Local variable p_data:</b> Pointer to the data at which a Bootloader Firmware Image pending to be installed should be located at but in \c uint32_t Type. */
+	uint32_t *p_data = (uint32_t *) ETX_APP_FLASH_ADDR;
+
+    /* Validating that length of the Bootloader Firmware Image pending to be installed is perfectly divisible by 4 bytes. */
+    if ((p_fw_config->App_fw_size)%4 != 0)
+    {
+    	// printf("ERROR: The size of the Bootloader Firmware Image pending to be installed is not perfectly divisible by 4 bytes (i.e., one word).\r\n");
+        return ETX_OTA_EC_ERR;
+    }
+
+	/* Unlock the Flash Memory of our MCU/MPU. */
+	ret = HAL_FLASH_Unlock();
+	ret = HAL_ret_handler(ret);
+	if(ret != HAL_OK)
+	{
+		// printf("ERROR: HAL Flash could not be unlocked; ETX OTA Exception code %d.\r\n", ret);
+		return ret;
+	}
+
+	/* Erase Flash Memory dedicated to our MCU/MPU's Bootloader Firmware. */
+	// printf("Erasing the Flash Memory pages designated to the Bootloader Firmware of our MCU/MPU...\r\n");
+	FLASH_EraseInitTypeDef EraseInitStruct;
+	uint32_t page_error;
+
+	EraseInitStruct.TypeErase    = FLASH_TYPEERASE_PAGES;
+	EraseInitStruct.Banks        = FLASH_BANK_1;
+	EraseInitStruct.PageAddress  = ETX_BL_FLASH_ADDR;
+	EraseInitStruct.NbPages      = ETX_BL_FLASH_PAGES_SIZE;
+
+	ret = HAL_FLASHEx_Erase(&EraseInitStruct, &page_error);
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		// printf("ERROR: Flash Memory pages of the Bootloader Firmware of our MCU/MPU could not be erased; ETX OTA Exception code %d.\r\n", ret);
+		return ret;
+	}
+	// printf("DONE: Flash Memory pages designated to the Bootloader Firmware of our MCU/MPU have been successfully erased.\r\n");
+
+	/* Write the entire Bootloader Firmware Image into our MCU/MPU's Flash Memory. */
+	// printf("Installing the identified Bootloader Firmware into our MCU/MPU...\r\n");
+	for ( ; bytes_flashed<p_fw_config->App_fw_size; bytes_flashed+=4)
+	{
+		/////////////////////////////
+		// TODO: Delete the following test code:
+		if (bytes_flashed > 1024)
+		{
+			break;
+		}
+		/////////////////////////////
+		ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+								(ETX_BL_FLASH_ADDR + bytes_flashed),
+								p_data[bytes_flashed/4]);
+		ret = HAL_ret_handler(ret);
+		if (ret != HAL_OK)
+		{
+			// printf("EXCEPTION CODE %d: The Bootloader Firmware Image data was not successfully written into our MCU/MPU.\r\n", ret);
+			return ret;
+		}
+	}
+
+	/* Lock the Flash Memory, just like it originally was before calling this @ref install_bl_stored_in_app_fw function. */
+	ret = HAL_FLASH_Lock();
+	ret = HAL_ret_handler(ret);
+	if (ret != HAL_OK)
+	{
+		// printf("ERROR: HAL Flash could not be locked; ETX OTA Exception code %d.\r\n", ret);
+	}
+
+    /* We update the Firmware Update Configuration's settings with respect to the currently installed Bootloader Firmware Image. */
+	p_fw_config->BL_fw_size = p_fw_config->App_fw_size;
+	p_fw_config->BL_fw_rec_crc = p_fw_config->App_fw_rec_crc;
+	p_fw_config->is_bl_fw_install_pending = NOT_PENDING;
+    ret = firmware_update_configurations_write(p_fw_config);
+    if (ret != FIRM_UPDT_CONF_EC_OK)
+    {
+        // printf("EXCEPTION CODE %d: The data was not written into the Firmware Update Configurations sub-module.\r\n", ret);
+        return ret;
+    }
+
+	// printf("DONE: The identified Bootloader Firmware Image has been successfully installed into our MCU/MPU.\r\n");
+	return ret;
+}
+
+static ETX_OTA_Status HAL_ret_handler(HAL_StatusTypeDef HAL_status)
+{
+  switch (HAL_status)
+    {
+  	  case HAL_BUSY:
+	  case HAL_TIMEOUT:
+		return ETX_OTA_EC_NR;
+	  case HAL_ERROR:
+		return ETX_OTA_EC_ERR;
+	  default:
+		return HAL_status;
+    }
+}
+
+/** @} */

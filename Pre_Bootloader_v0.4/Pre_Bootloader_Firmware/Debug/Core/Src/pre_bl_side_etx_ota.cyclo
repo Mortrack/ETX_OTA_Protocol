@@ -1,0 +1,2 @@
+../Core/Src/pre_bl_side_etx_ota.c:25:16:install_bl_stored_in_app_fw	7
+../Core/Src/pre_bl_side_etx_ota.c:94:23:HAL_ret_handler	4

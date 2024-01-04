@@ -1,0 +1,756 @@
+/* USER CODE BEGIN Header */
+// TODO: Feel free to remove the @ref green_LED1 GPIO configuration before using this template, since that is just shown here as a didactical example to indicate an error.
+/** @file
+ 	@brief	Main file at which the main/actual application of our MCU/MPU lies at.
+ *
+ * @defgroup main Main module
+ * @{
+ *
+ * @brief	This is the Main Module, which is where the main part of the application of the whole code is executed.
+ *
+ * @details	The purpose of this module is to provide a template code for any general purpose Bootloader that is desired
+ *          to be developed for an STM32 MCU/MPU in which such a template already provides the code to manage and handle
+ *          Firmware Updates via the Mortrack's ETX OTA Protocol that uses the @ref firmware_update_config .
+ *
+ * @note    The @ref main template is actually functioning as a Bootloader Firmware, which has an Application Firmware
+ *          counterpart that should be located in an independent project to this, but that should be located just
+ *          next to the root folder where the @ref main project's File Path is located at.
+ *
+ * @details The logic contemplated in this @ref main template assumes that either Bootloader or Application Firmware
+ *          Updates will be requested to this Bootloader Firmware software. The way that this will work is that if this
+ *          @ref main program receives a Bootloader Firmware Image via the ETX OTA Protocol made by Mortrack, then it
+ *          will temporarily store it into the Flash Memory designated to the Application Firmware
+ *          (i.e., at @ref APLICATION_FIRMWARE_ADDRESS ) and then it will reboot. After reboot, this @ref main program
+ *          expects that there is another independent program (i.e., The Pre-Bootloader program) installed into our
+ *          MCU/MPU that runs first and handles the installation of the temporarily stored Bootloader Firmware Image
+ *          that was just mentioned into the Flash Memory designated to the Bootloader Firmware (i.e., at
+ *          @ref BOOTLOADER_FIRMWARE_ADDRESS ). On the other hand, if an Application Firmware Image is received instead,
+ *          then our @ref main program will install it into the Flash Memory designated to the Application Firmware
+ *          (i.e., at @ref APLICATION_FIRMWARE_ADDRESS ) and will then also reboot our MCU/MPU. However, if no Firmware
+ *          Image Update is requested to our @ref main program for whatever the @ref ETX_CUSTOM_HAL_TIMEOUT lasts, then
+ *          our MCU/MPU will jump into whatever Application Firmware Image it has installed in it but only if its 32-bit
+ *          CRC validation passes successfully. Otherwise, our MCU/MPU will loop into waiting for a Firmware Image
+ *          Update request from a certain host machine.
+ *
+ * @note    This @ref main program expects our MCU/MPU to have an Application Firmware counterpart that uses the ETX OTA
+ *          Protocol made by Mortrack, which is where the implementer's actual application purpose for our MCU/MPU
+ *          should lie on.
+ * @note    In the case that the implementer desires to update either only the Bootloader or both the Bootloader and
+ *          Application Firmwares of our MCU/MPU, then the order of the updates should strictly be first for the
+ *          Bootloader and, in the case of installing both of them, then for the Application. The reason for this lies
+ *          in that if only the Bootloader is updated, then our MCU/MPU will lose its Application Firmware with which it
+ *          was last working with, reason for which, whenever updating the Bootloader, then the Application Firmware
+ *          should also be updated after that. On the other hand, if only the Application is desired to be updated, then
+ *          this can be directly done and the MCU/MPU should have its current Bootloader Firmware intact with its new
+ *          Application Firmware.
+ * @note    For the first time you install this @ref main Bootloader program into your MCU/MPU, you should do this
+ *          Firmware installation via the STM32 ST-LINK Utility application provided by the STMicroelectronics Team. In
+ *          addition, you should also install the Pre-Bootloader (located at an independent project to @ref main , next
+ *          to the root folder of the @ref main project File Path) by also using that application. After that, the first
+ *          and subsequent times that you want to install the Application Firmware (Application Firmware template
+ *          located at independent project to @ref main , next to the root folder of the @ref main project File Path),
+ *          this should be strictly done only via the ETX OTA Protocol made by Mortrack because the Configuration
+ *          Settings of the @ref firmware_update_config are changed whenever that happens and this is strictly
+ *          required/expected for Application Firmware Installations that uses the ETX OTA Protocol that was just
+ *          mentioned. After this, any Bootloader and/or Application Firmware Updates should be handled only via the
+ *          ETX OTA Protocol made by Mortrack so that our MCU/MPU can work as expected.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	November 19, 2023.
+ */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <stdio.h>	// Library from which "printf" is located at.
+#include <stdint.h> // This library contains the aliases: uint8_t, uint16_t, uint32_t, etc.
+#include "bl_side_etx_ota.h" // This custom Mortrack's library contains the functions, definitions and variables required so that the Main module can receive and apply Firmware Update Images to our MCU/MPU.
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+#define BOOTLOADER_FIRMWARE_ADDRESS					(ETX_BL_FLASH_ADDR)						/**< @brief Designated Memory Location address for the Bootloader Firmware. */
+#define APLICATION_FIRMWARE_ADDRESS					(ETX_APP_FLASH_ADDR)					/**< @brief Designated Memory Location address for the Application Firmware. */
+#define APPLICATION_FIRMWARE_RESET_HANDLER_ADDRESS 	(APLICATION_FIRMWARE_ADDRESS + 4U)		/**< @brief Designated Memory Location address for the Reset Handler of the Application Firmware. */
+#define GPIO_MCU_LED1_Pin							(GPIO_PIN_13)							/**< @brief Label for Pin PC13 in Output Mode, which is the Green LED1 of our MCU that the @ref main module will use in its program for indicating to the user whenever our MCU/MPU gets a software error or not. @details The following are the output states to be taken into account:<br><br>* 0 (i.e., Low State and also LED1 turned On) = MCU got a Software Error.<br>* 1 (i.e., High State and also LED1 turned Off) = MCU has no software error. */
+#define GPIO_hm10_VCC_Port		 					((GPIO_TypeDef *) GPIOB)                /**< @brief @ref GPIO_TypeDef Type of the GPIO Port towards which the Output Mode GPIO Pin PB1 will be used to remove or connect the Power Supply of the HM-10 Clone BLE Device by using a transistor. */
+#define GPIO_hm10_VCC_Pin							(GPIO_PIN_1)							/**< @brief Label for the GPIO Pin 1 towards which the GPIO Pin PB1 in Output Mode is at, which is used to remove or connect the Power Supply of the HM-10 Clone BLE Device by using a transistor. @details The following are the possible values of this VCC Pin:<br><br>* 0 (i.e., Low State) = The Power Supply of the HM-10 Clone BLE Device is not connected.<br>* 1 (i.e., High State) = The Power Supply of the HM-10 Clone BLE Device is connected. */
+#define GPIO_is_hm10_default_settings_Port 			((GPIO_TypeDef *) GPIOC)				/**< @brief @ref GPIO_TypeDef Type of the GPIO Port towards which the Input Mode GPIO Pin PC14 will be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 Clone BLE Device or not. */
+#define GPIO_is_hm10_default_settings_Pin			(GPIO_PIN_14)							/**< @brief Label for the GPIO Pin 14 towards which the GPIO Pin PC14 in Input Mode is at, which is used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 Clone BLE Device or not. @details The following are the possible values of this Pin:<br><br>* 0 (i.e., Low State) = Do not reset/change the configuration settings of the HM-10 Clone BLE Device.<br>* 1 (i.e., High State) = User requests to reset the configuration settings of the HM-10 Clone BLE Device to its default settings. */
+#define GPIO_hm10_state_Pin_Port		 			((GPIO_TypeDef *) GPIOC)                /**< @brief @ref GPIO_TypeDef Type of the GPIO Port towards which the Input Mode GPIO Pin PC14 will be used to read the STATE Pin of the HM-10 Clone BLE Device. */
+#define GPIO_hm10_state_Pin							(GPIO_PIN_15)							/**< @brief Label for the GPIO Pin 15 towards which the GPIO Pin PC15 in Input Mode is at, which is used to read the STATE Pin of the HM-10 Clone BLE Device. @details The following are the possible values of that STATE Pin:<br><br>* 0 (i.e., Low State) = The HM-10 Clone BLE Device is not connected with an external BLE Device.<br>* 1 (i.e., High State) = The HM-10 Clone BLE Device is currently connected with an external BLE Device. */
+#define MAJOR 										(0)										/**< @brief Major version number of our MCU/MPU's Bootloader Firmware. */
+#define MINOR 										(4)										/**< @brief Minor version number of our MCU/MPU's Bootloader Firmware. */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart3;
+
+/* USER CODE BEGIN PV */
+// NOTE: "huart1" is used for debugging messages via printf() from stdio.h library.
+// NOTE: "huart2" is used for communicating with the host that will be sending firmware images to our MCU via the ETX OTA Protocol with the UART Hardware Protocol.
+// NOTE: "huart3" is used for communicating with the host that will be sending firmware images to our MCU via the ETX OTA Protocol with the BLE Hardware Protocol.
+const uint8_t BL_version[2] = {MAJOR, MINOR};   /**< @brief Global array variable used to hold the Major and Minor version number of our MCU/MPU's Bootloader Firmware in the 1st and 2nd byte respectively. */
+firmware_update_config_data_t fw_config;				/**< @brief Global struct used to either pass to it the data that we want to write into the designated Flash Memory pages of the @ref firmware_update_config sub-module or, in the case of a read request, where that sub-module will write the latest data contained in the sub-module. */
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_USART3_UART_Init(void);
+/* USER CODE BEGIN PFP */
+
+/**@brief	Initializes the @ref firmware_update_config sub-module and then loads the latest data that has been written
+ *          into it, if there is any. However, in the case that any of these processes fail, then this function will
+ *          endlessly loop via a \c while() function and set the @ref GPIO_MCU_LED1_Pin to @ref GPIO_PIN_RESET state.
+ *
+ * @details	In case that all the processes conclude successfully, the latest data of the @ref firmware_update_config
+ *          sub-module will be copied into the global struct \c fw_config .
+ *
+ * @details	A maximum of three attempts to initialize this module will be made, with a delay of 0.5 seconds each.
+ *
+ * @author	César Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	November 19, 2023
+ */
+static void custom_firmware_update_config_init(void);
+
+/**@brief	Initializes the @ref bl_side_etx_ota with a desired Hardware Protocol and, only in the case that the
+ *          initialization is unsuccessful, then this function will endlessly loop via a \c while() function and set the
+ *          @ref GPIO_MCU_LED1_Pin to @ref GPIO_PIN_RESET state.
+ *
+ * @details	This function creates and populate the fields of three structs required for initializing the
+ *          @ref bl_side_etx_ota via the @ref init_firmware_update_module function. In the case where that function
+ *          initializes the @ref bl_side_etx_ota successfully, then this
+ *          @ref custom_firmware_update_config_init function will terminate. Otherwise, it will endlessly loop via a \c
+ *          while() function and set the @ref GPIO_MCU_LED1_Pin to @ref GPIO_PIN_RESET state.
+ *
+ * @note    The @ref fw_config Global struct must have already been populated with the latest data written into the
+ *          @ref firmware_update_config before calling this function.
+ *
+ * @param hw_protocol   ETX OTA Hardware Protocol that is desired to enable whenever using the ETX OTA Protocol.
+ * @param[in] p_huart   Pointer to the UART that wants to be used from our MCU/MPU as the means for using the chosen ETX
+ *                      OTA Hardware Protocol.
+ *
+ * @author	César Miranda Meza
+ * @date	November 19, 2023
+ */
+static void custom_init_etx_ota_protocol_module(ETX_OTA_hw_Protocol hw_protocol, UART_HandleTypeDef *p_huart);
+
+/**@brief	Validates the CRC of our MCU/MPU's current Bootloader Firmware and, only in the case that the Bootloader
+ *          Firmware is not valid or is corrupted, then this function will endlessly loop via a \c while() function and
+ *          set the @ref GPIO_MCU_LED1_Pin to @ref GPIO_PIN_RESET state.
+ *
+ * @details	This function reads the data stored in the @ref firmware_update_config via the @ref fw_config Global struct
+ *          to get the recorded CRC of the Bootloader Firmware and it calculates the CRC of the actual Bootloader
+ *          Firmware currently installed in our MCU/MPU. After this, both CRCs are used for validating our MCU/MPU's
+ *          current Bootloader Firmware. If both CRCs match or if there is no recorded CRC stored at the @ref fw_config
+ *          Global struct, then this function will terminate. Otherwise, it will endlessly loop via a \c while()
+ *          function and set the @ref GPIO_MCU_LED1_Pin to @ref GPIO_PIN_RESET state.
+ *
+ * @note    The @ref fw_config Global struct must have already been populated with the latest data written into the
+ *          @ref firmware_update_config before calling this function.
+ *
+ * @author	César Miranda Meza
+ * @date	November 19, 2023
+ */
+static void validate_bootloader_firmware(void);
+
+/**@brief	Validates the CRC of our MCU/MPU's current Application Firmware.
+ *
+ * @details	This function reads the data stored in the @ref firmware_update_config sub-module to get the recorded CRC of
+ *          the Application Firmware and it calculates the CRC of the actual Application Firmware currently installed in
+ *          our MCU/MPU. After this, both CRCs are used for validating our MCU/MPU's current Application Firmware.
+ *
+ * @param[out] is_app_fw_validation_ok  Pointer to the Memory Location Address where the Flag value for used to indicate
+ *                                      whether the Application Firmware has been successfully validated or not is
+ *                                      located at. The possible valid values of this Flag are the following:<br><br> -
+ *                                      0 = There is either no Firmware Image installed at the designated Flash Memory
+ *                                      of the Application Firmware or, if there is one, it either did not pass the
+ *                                      32-bit CRC validation or, a Bootloader Firmware was identified to be there.<br>
+ *                                      - 1 = There is a valid Application Firmware Image installed at the designated
+ *                                      Flash Memory of the Application Firmware.
+ *
+ * @author	César Miranda Meza
+ * @date	November 19, 2023
+ */
+static void validate_application_firmware(uint8_t *is_app_fw_validation_ok);
+
+/**@brief	Makes our MCU/MPU to jump into its Application Firmware.
+ *
+ * @author	César Miranda Meza
+ * @date	July 16, 2023
+ */
+static void goto_application_firmware(void);
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
+  /* USER CODE BEGIN 2 */
+
+  /** <b>Local variable is_app_fw_validation_ok:</b> Flag used to indicate whether the Application Firmware has been successfully validated via its CRC with a \c 1 or, otherwise with a \c 0 . */
+  uint8_t is_app_fw_validation_ok = 1;
+  /** <b>Local variable end_tick:</b> Will hold the HAL Ticks that our MCU/MPU needs to reach so that 3 seconds have passed with respect to the moment that our MCU/MPU enters into DFU mode. */
+  uint32_t end_tick;
+  /** <b>Local variable current_tick:</b> Current HAL Tick in our MCU/MPU. */
+  uint32_t current_tick;
+  /** <b>Local variable ret:</b> Used to hold the exception code value returned by a @ref ETX_OTA_Status function type. */
+  ETX_OTA_Status ret;
+
+  /* Send a message from the Bootloader showing the current Bootloader version there. */
+  //#if ETX_OTA_VERBOSE
+  	  printf("Starting Bootloader v%d.%d\r\n", BL_version[0], BL_version[1]);
+  //#endif
+
+  /* We initialize the Firmware Update Configurations sub-module and the ETX OTA Protocol module. */
+  custom_firmware_update_config_init();
+  custom_init_etx_ota_protocol_module(ETX_OTA_hw_Protocol_BLE, &huart3);
+
+  /* Validate both the Bootloader and Application Firmwares in our MCU/MPU. */
+  validate_bootloader_firmware();
+  validate_application_firmware(&is_app_fw_validation_ok);
+
+  /*
+   Check if a Firmware Image is received during the next @ref ETX_CUSTOM_HAL_TIMEOUT seconds and, if true, install it
+   if it is an Application Firmware Image. Otherwise, jump the MCU/MPU into its Application Firmware. However, if there
+   is no existing or valid Application Firmware installed in our MCU, then wait indefinitely to receive an Application
+   Firmware Update via the ETX OTA Protocol.
+   */
+  end_tick = HAL_GetTick() + ETX_CUSTOM_HAL_TIMEOUT;
+  #if ETX_OTA_VERBOSE
+    printf("Our MCU/MPU has entered into DFU mode...\r\n");
+    printf("Waiting to receive Application Firmware Image to trigger firmware update...\r\n");
+  #endif
+  do
+  {
+	  do
+	  {
+		  printf("Waiting for an ETX OTA Transaction...\r\n");
+		  ret = firmware_image_download_and_install();
+		  switch (ret)
+		  {
+			case ETX_OTA_EC_OK:
+				#if ETX_OTA_VERBOSE
+					if (fw_config.is_bl_fw_install_pending == IS_PENDING)
+					{
+						printf("DONE: Bootloader Firmware Image has been successfully stored in the Flash Memory! Rebooting MCU/MPU to install it...\r\n");
+					}
+					else
+					{
+						printf("DONE: Application Firmware Update has successfully concluded! Rebooting MCU/MPU...\r\n");
+					}
+				#endif
+				HAL_NVIC_SystemReset();
+				break;
+			case ETX_OTA_EC_STOP:
+				#if ETX_OTA_VERBOSE
+					printf("DONE: Firmware Update process has been aborted. Try again...\r\n");
+				#endif
+				current_tick = HAL_GetTick();
+				break;
+			case ETX_OTA_EC_NR:
+				// No response was received from host. Therefore, try hearing for a response from the host again in case our MCU/MPU is still in DFU mode.
+				current_tick = HAL_GetTick();
+				break;
+			case ETX_OTA_EC_NA:
+				#if ETX_OTA_VERBOSE
+					printf("WARNING: Application or Bootloader Firmware Image was expected, but request for something else was received instead.\r\n");
+					printf("Waiting for MCU/MPU to jump into its Application Firmware to receive that request there and then try again...\r\n");
+				#endif
+				current_tick = end_tick; // Force the Loop to end.
+				break;
+			case ETX_OTA_EC_ERR:
+				#if ETX_OTA_VERBOSE
+				printf("ERROR: ETX OTA process has failed. Try again...\r\n");
+				#endif
+				break;
+			default:
+				#if ETX_OTA_VERBOSE
+					printf("ERROR: Exception Code received %d is not recognized. Our MCU/MPU will halt!.\r\n", ret);
+				#endif
+				HAL_GPIO_WritePin(GPIOC, GPIO_MCU_LED1_Pin, GPIO_PIN_RESET);
+				while (1);
+		  }
+	  }
+	  while ((current_tick<end_tick) || (is_app_fw_validation_ok==0));
+
+	  /* We validate the currently installed Application Firmware once more in our MCU/MPU to verify that it is still OK. */
+	  /*
+	     NOTE:  The following validation helps the @ref main program to correctly tell if the current Application
+	            Firmware is currently valid whenever we have the case that it was originally valid during the
+	            initialization of the @ref program, but where "along the way", there was an ETX OTA Firmware Update
+	            transaction that could not be completed and, therefore, having as a result that the current Application
+	            Firmware is no longer valid. Therefore, by validating the Application Firmware again here, the @ref main
+	            program can guarantee to successfully loop in the Bootloader Firmware and continue asking for an ETX OTA
+	            Request until an ETX OTA Firmware Update transaction is successfully completed.
+      */
+	  validate_application_firmware(&is_app_fw_validation_ok);
+  }
+  while (is_app_fw_validation_ok == 0);
+  /* Make the MCU/MPU jump into its Application Firmware. */
+  #if ETX_OTA_VERBOSE
+    printf("Our MCU/MPU has leaved DFU mode.\r\n");
+  #endif
+  goto_application_firmware();
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV4;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 9600;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PC14 PC15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+}
+
+/* USER CODE BEGIN 4 */
+
+/**@brief	Compiler definition to be able to use the @ref printf function from stdio.h library in order to print
+ *          characters via the UART1 Peripheral but by using that @ref printf function.
+ *
+ * @return	The \p ch param.
+ *
+ * author	César Miranda Meza
+ * @date	July 07, 2023
+ */
+#ifdef __GNUC__
+	/* With GCC, small printf (option LD Linker->Libraries->Small printf set to 'Yes') calls __io_putchar(). */
+	int __io_putchar(int ch)
+#else
+	int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+{
+	/* Place your implementation of fputc here. */
+	/* NOTE: The characters written into the UART1 Protocol will be looped until the end of transmission. */
+	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+	return ch;
+}
+
+static void custom_firmware_update_config_init(void)
+{
+    /** <b>Local variable ret:</b> Return value of a @ref FirmUpdConf_Status function type. */
+    int16_t ret;
+    /** <b>Local variable attempts:</b> Counter for the number of attempts to initialize the Firmware Update Configurations sub-module. */
+    uint8_t attempts = 0;
+    /** <b>Local variable end_tick:</b> Defines the HAL Tick that our MCU/MPU needs to reach so that 0.5 seconds have passed with respect to each attempt to initialize the @ref firmware_update_config . */
+    uint32_t end_tick;
+    /** <b>Local variable current_tick:</b> Current HAL Tick in our MCU/MPU. */
+    uint32_t current_tick;
+
+    #if ETX_OTA_VERBOSE
+        printf("Initializing the Firmware Update Configurations sub-module...\r\n");
+    #endif
+    do
+    {
+        /* Delay of 500 milliseconds. */
+        end_tick = HAL_GetTick() + 500;
+        current_tick = 0;
+        while (current_tick < end_tick)
+        {
+            current_tick = HAL_GetTick();
+        }
+
+        /* We attempt to initialize the Firmware Update Configurations sub-module. */
+        ret = firmware_update_configurations_init();
+        attempts++;
+        if (ret == FIRM_UPDT_CONF_EC_OK)
+        {
+            /* We read the latest data that has been written into the Firmware Update Configurations sub-module. */
+            firmware_update_configurations_read(&fw_config);
+            #if ETX_OTA_VERBOSE
+                printf("DONE: Firmware Update Configurations sub-module has been successfully initialized.\r\n");
+            #endif
+
+            return;
+        }
+        #if ETX_OTA_VERBOSE
+            printf("WARNING: The Firmware Update Configurations sub-module could not be initialized at attempt %d...\r\n", attempts);
+        #endif
+    }
+    while(attempts < 3);
+
+    #if ETX_OTA_VERBOSE
+        printf("ERROR: The Firmware Update Configurations sub-module could not be initialized. Our MCU/MPU will halt!.\r\n");
+    #endif
+    HAL_GPIO_WritePin(GPIOC, GPIO_MCU_LED1_Pin, GPIO_PIN_RESET);
+    while (1);
+}
+
+static void custom_init_etx_ota_protocol_module(ETX_OTA_hw_Protocol hw_protocol, UART_HandleTypeDef *p_huart)
+{
+    /** <b>Local variable ret:</b> Used to hold the exception code value returned by a @ref ETX_OTA_Status function type. */
+    ETX_OTA_Status ret;
+
+    #if ETX_OTA_VERBOSE
+        printf("Initializing the ETX OTA Firmware Update Module.\r\n");
+    #endif
+    /** <b>Local variable GPIO_hm10_VCC:</b> Used to hold the GPIO pin parameters of the Output Mode GPIO Pin to be used to remove or connect the Power Supply of the HM-10 Clone BLE Device by using a transistor. */
+    GPIO_def_t GPIO_hm10_VCC;
+    GPIO_hm10_VCC.GPIO_Port = GPIO_hm10_VCC_Port;
+    GPIO_hm10_VCC.GPIO_Pin = GPIO_hm10_VCC_Pin;
+    /** <b>Local variable GPIO_is_hm10_default_settings:</b> Used to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 Clone BLE Device or not. */
+    GPIO_def_t GPIO_is_hm10_default_settings;
+    GPIO_is_hm10_default_settings.GPIO_Port = GPIO_is_hm10_default_settings_Port;
+    GPIO_is_hm10_default_settings.GPIO_Pin = GPIO_is_hm10_default_settings_Pin;
+    /** <b>Local variable GPIO_hm10_state:</b> Used to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used to read the STATE Pin of the HM-10 Clone BLE Device. */
+    GPIO_def_t GPIO_hm10_state;
+    GPIO_hm10_state.GPIO_Port = GPIO_hm10_state_Pin_Port;
+    GPIO_hm10_state.GPIO_Pin = GPIO_hm10_state_Pin;
+
+    ret = init_firmware_update_module(hw_protocol, p_huart, &fw_config, &GPIO_hm10_VCC, &GPIO_is_hm10_default_settings, &GPIO_hm10_state);
+    if (ret != ETX_OTA_EC_OK)
+    {
+        #if ETX_OTA_VERBOSE
+            printf("ERROR: The ETX OTA Firmware Update Module could not be initialized. Our MCU/MPU will halt!.\r\n");
+        #endif
+        HAL_GPIO_WritePin(GPIOC, GPIO_MCU_LED1_Pin, GPIO_PIN_RESET);
+        while (1);
+    }
+    #if ETX_OTA_VERBOSE
+        printf("DONE: The ETX OTA Firmware Update Module has been successfully initialized.\r\n");
+    #endif
+}
+
+static void validate_bootloader_firmware(void)
+{
+    #if ETX_OTA_VERBOSE
+        printf("Validating the Bootloader Firmware of our MCU/MPU...\r\n");
+    #endif
+    if (fw_config.BL_fw_rec_crc != DATA_BLOCK_32BIT_ERASED_VALUE)
+    {
+        /** <b>Local variable cal_crc:</b> Value holder for the calculated 32-bit CRC of our MCU/MPU's current Bootloader Firmware. */
+        uint32_t cal_crc = crc32_mpeg2((uint8_t *) BOOTLOADER_FIRMWARE_ADDRESS, fw_config.BL_fw_size);
+
+        if (cal_crc != fw_config.BL_fw_rec_crc)
+        {
+            #if ETX_OTA_VERBOSE
+                printf("The recorded 32-bit CRC of the installed Bootloader Firmware mismatches with the calculated one: [Calculated CRC = 0x%08X] [Recorded CRC = 0x%08X]\r\n",
+                       (unsigned int) cal_crc, (unsigned int) fw_config.BL_fw_rec_crc);
+                printf("ERROR: The Bootloader Firmware currently installed in our MCU/MPU is corrupted. Our MCU/MPU will halt!.\r\n");
+            #endif
+            HAL_GPIO_WritePin(GPIOC, GPIO_MCU_LED1_Pin, GPIO_PIN_RESET);
+            while (1);
+        }
+    }
+	#if ETX_OTA_VERBOSE
+		printf("DONE: Bootloader Firmware of our MCU/MPU has been successfully validated.\r\n");
+	#endif
+}
+
+static void validate_application_firmware(uint8_t *is_app_fw_validation_ok)
+{
+    #if ETX_OTA_VERBOSE
+        printf("Validating the Application Firmware of our MCU/MPU...\r\n");
+    #endif
+    if ((fw_config.App_fw_rec_crc==DATA_BLOCK_32BIT_ERASED_VALUE) || (fw_config.App_fw_size==DATA_BLOCK_32BIT_ERASED_VALUE) || (fw_config.App_fw_size==0x00000000))
+    {
+        #if ETX_OTA_VERBOSE
+            printf("WARNING: No Application Firmware has been identified to be installed in our MCU/MPU.\r\n");
+        #endif
+        *is_app_fw_validation_ok = 0;
+    }
+    else if (fw_config.is_bl_fw_stored_in_app_fw == BT_FW_STORED_IN_APP_FW)
+    {
+        #if ETX_OTA_VERBOSE
+            printf("WARNING: A Bootloader Firmware is currently stored at the designated Flash Memory of the Application Firmware of our MCU/MPU.\r\n");
+        #endif
+        *is_app_fw_validation_ok = 0;
+    }
+    else
+    {
+        /** <b>Local variable cal_crc:</b> Value holder for the calculated 32-bit CRC of our MCU/MPU's current Application Firmware. */
+        uint32_t cal_crc = crc32_mpeg2((uint8_t *) APLICATION_FIRMWARE_ADDRESS, fw_config.App_fw_size);
+
+        if (cal_crc != fw_config.App_fw_rec_crc)
+        {
+            #if ETX_OTA_VERBOSE
+                printf("WARNING: The recorded 32-bit CRC of the installed Application Firmware Image mismatches with the calculated one: [Calculated CRC = 0x%08X] [Recorded CRC = 0x%08X]\r\n",
+                       (unsigned int) cal_crc, (unsigned int) fw_config.App_fw_rec_crc);
+            #endif
+            *is_app_fw_validation_ok = 0;
+        }
+    }
+    #if ETX_OTA_VERBOSE
+		printf("DONE: Application Firmware of our MCU/MPU has been successfully validated.\r\n");
+	#endif
+}
+
+static void goto_application_firmware(void)
+{
+	/* Create function pointer with no arguments that points to the Memory Location Address of the Reset Handler of the Application Firmware. */
+	#if ETX_OTA_VERBOSE
+		printf("Jumping into Application Firmware\r\n");
+	#endif
+	void (*app_reset_handler) (void) = (void*) (*(volatile uint32_t *) (APPLICATION_FIRMWARE_RESET_HANDLER_ADDRESS));
+
+	/* NOTE: Some MCUs might have already the ASM code available so that the Main Stack Pointer (MSP) is recycled, but this is not the case for all MCUs. */
+	/* Therefore, if you were to need to do this from scratch, you would have to do the following: */
+	//__set_MSP( ( *(volatile uint32_t *) APPLICATION_FIRMWARE_ADDRESS );
+
+	/* Call the Application's Reset Handler. */
+	app_reset_handler();
+}
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
+
+/** @} */

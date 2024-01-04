@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="wrap" value="true"/>
+		<item key="casesensitive" value="false"/>
+		<item key="wholeword" value="false"/>
+		<item key="incremental" value="false"/>
+		<item key="isRegEx" value="false"/>
+		<item key="selection" value="validate_bootloader_firmware"/>
+		<list key="findhistory">
+			<item value="validate_bootloader_firmware"/>
+			<item value="p_fw_config"/>
+			<item value="firmware_update_config_data_t"/>
+			<item value="validate_application_firmware"/>
+			<item value="BL_version"/>
+			<item value="is_our_MCU_in_DFU"/>
+			<item value="data_len"/>
+			<item value="ETX_OTA_MAX_FW_SIZE"/>
+			<item value="ETX_OTA_APP_FW_SIZE"/>
+			<item value="BOOTLOADER_FIRMWARE_ADDRESS"/>
+			<item value="APLICATION_FIRMWARE_ADDRESS"/>
+			<item value="etx_ota_receive_packet"/>
+			<item value="firmware_update"/>
+			<item value="FW_CUSTOM_HAL_TIMEOUT"/>
+			<item value=".data"/>
+		</list>
+		<list key="replacehistory">
+			<item value="fw_config"/>
+			<item value="bl_side_firmware_update"/>
+			<item value="ETX_CUSTOM_HAL_TIMEOUT"/>
+			<item value="FW_CUSTOM_HAL_TIMEOUT"/>
+			<item value="PAGE_SIZE"/>
+			<item value=""/>
+			<item value="page_erase"/>
+			<item value="firmware_update_configurations"/>
+			<item value="prep_page_swap"/>
+			<item value="FirmUpdConf_Status"/>
+			<item value="Firm_Upd_Conf_status"/>
+			<item value="FUC_status"/>
+			<item value="FIRMWARE_UPDATE_CONFIG_END_ADDR_PLUS_ONE"/>
+			<item value="FIRMWARE_UPDATE_CONFIG_START_ADDR"/>
+			<item value="FIRMWARE_UPDATE_CONFIG_BLOCK_SIZE"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="1538"/>
+		<item key="DIALOG_Y_ORIGIN" value="90"/>
+		<item key="DIALOG_WIDTH" value="322"/>
+		<item key="DIALOG_HEIGHT" value="391"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+</section>

@@ -1,0 +1,10 @@
+09:35:07 **** Incremental Build of configuration Debug for project Application_Firmware ****
+make -j12 all 
+arm-none-eabi-size   Application_Firmware.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24092	    112	   3160	  27364	   6ae4	Application_Firmware.elf
+Finished building: default.size.stdout
+ 
+
+09:35:07 Build Finished. 0 errors, 0 warnings. (took 213ms)
+

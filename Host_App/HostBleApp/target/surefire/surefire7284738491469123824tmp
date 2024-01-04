@@ -1,0 +1,7 @@
+#surefire
+#Sat Dec 16 00:16:48 PST 2023
+maven.ext.class.path=C\:\\Program Files\\NetBeans 8.2\\java\\maven-nblib\\netbeans-eventspy.jar
+user.dir=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp
+file.encoding=UTF-8
+localRepository=C\:\\Users\\cmira\\.m2\\repository
+basedir=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp
