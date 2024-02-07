@@ -1,16 +1,16 @@
 #surefire
-#Sat Dec 16 00:16:48 PST 2023
-testClassesDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\target\\test-classes
+#Mon Jan 29 10:49:37 PST 2024
+testClassesDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\target\\test-classes
 classPathUrl.4=C\:\\Users\\cmira\\.m2\\repository\\com\\beust\\jcommander\\1.82\\jcommander-1.82.jar
 forkMode=once
 classPathUrl.3=C\:\\Users\\cmira\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar
 classPathUrl.2=C\:\\Users\\cmira\\.m2\\repository\\org\\testng\\testng\\7.8.0\\testng-7.8.0.jar
 useManifestOnlyJar=true
-classPathUrl.1=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\target\\classes
-reportsDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\target\\surefire-reports
-classPathUrl.0=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\target\\test-classes
+classPathUrl.1=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\target\\classes
+reportsDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\target\\surefire-reports
+classPathUrl.0=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\target\\test-classes
 providerConfiguration=org.apache.maven.surefire.testng.TestNGProvider
-testSuiteDefinitionTestSourceDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\src\\test\\java
+testSuiteDefinitionTestSourceDirectory=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\src\\test\\java
 surefireClassPathUrl.4=C\:\\Users\\cmira\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-api\\2.10\\surefire-api-2.10.jar
 surefireClassPathUrl.3=C\:\\Users\\cmira\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-testng-utils\\2.10\\surefire-testng-utils-2.10.jar
 surefireClassPathUrl.2=C\:\\Users\\cmira\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\1.0.4\\plexus-utils-1.0.4.jar
@@ -21,7 +21,7 @@ runOrder=filesystem
 useSystemClassLoader=true
 excludes0=**/*$*
 isTrimStackTrace=true
-testng.test.classpath=C\:\\Users\\cmira\\OneDrive\\Escritorio\\Bootloader Project v0.4\\Host_BLE_App\\HostBleApp\\target\\test-classes
+testng.test.classpath=C\:\\Users\\cmira\\OneDrive\\Escritorio\\GitHub\\ETX_OTA_Protocol\\Host_App\\HostBleApp\\target\\test-classes
 includes2=**/*TestCase.java
 enableAssertions=true
 includes1=**/*Test.java

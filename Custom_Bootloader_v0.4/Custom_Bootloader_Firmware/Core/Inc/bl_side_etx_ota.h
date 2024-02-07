@@ -63,6 +63,7 @@
  * @author 	EmbeTronicX (<a href=https://github.com/Embetronicx/STM32-Bootloader/tree/ETX_Bootloader_3.0>STM32-Bootloader GitHub Repository under ETX_Bootloader_3.0 branch</a>)
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
  * @date	December 13, 2023.
+ * @date    LAST UPDATE: February 06, 2024.
  */
 #include <stdint.h>
 #include "firmware_update_config.h" // We call the library that holds the Firmware Update Configurations sub-module.
@@ -99,9 +100,14 @@ typedef enum
 
 /**@brief   Attempts to receive and install an Application Firmware Image into our MCU/MPU.
  *
- * @details The Applicaiton Firmware Image is expected to be received from a certain host via the initialized Hardware
- *          Protocol (see @ref init_firmware_update_module function) and by using the ETX OTA Communication Protocol.
+ * @details The Application Firmware Image is expected to be received, during the Timeout specified in
+ *          @ref ETX_CUSTOM_HAL_TIMEOUT, from a certain host via the initialized Hardware Protocol (see
+ *          @ref init_firmware_update_module function) and by using the ETX OTA Communication Protocol.
  *
+ * @note    This function may not be able to successfully complete an entire ETX OTA Transaction if there are any
+ *          Non-Blocking Callback functions working while this function is still running. Therefore, if your program
+ *          required those type of Callback functions, make sure to stop them before calling this function and then
+ *          start them again after this function terminates.
  * @note    For more details on how the ETX OTA Protocol works, see the @ref bl_side_etx_ota module.
  * @note	This function expects that the @ref firmware_update_config has already been initialized via the
  *          @ref firmware_update_configurations_init function.

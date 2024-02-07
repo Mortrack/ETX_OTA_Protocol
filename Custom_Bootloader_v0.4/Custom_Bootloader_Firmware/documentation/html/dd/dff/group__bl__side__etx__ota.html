@@ -340,7 +340,9 @@ For an application code example of this module, see the application code example
 <dl class="section author"><dt>Author</dt><dd>EmbeTronicX (<a href="https://github.com/Embetronicx/STM32-Bootloader/tree/ETX_Bootloader_3.0">STM32-Bootloader GitHub Repository under ETX_Bootloader_3.0 branch</a>) </dd>
 <dd>
 Cesar Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>December 13, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>December 13, 2023. </dd>
+<dd>
+LAST UPDATE: February 06, 2024. </dd></dl>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="ga31ccfee7f30e5cac204d5402f215106a" name="ga31ccfee7f30e5cac204d5402f215106a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga31ccfee7f30e5cac204d5402f215106a">&#9670;&#160;</a></span>ETX_OTA_DATA_MAX_SIZE</h2>
@@ -766,8 +768,10 @@ César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+
 </div><div class="memdoc">
 
 <p>Attempts to receive and install an Application Firmware Image into our MCU/MPU. </p>
-<p>The Applicaiton Firmware Image is expected to be received from a certain host via the initialized Hardware Protocol (see <a class="el" href="../../dd/dff/group__bl__side__etx__ota.html#ga637a094d9de8497dde307af1bb9fb61c">init_firmware_update_module</a> function) and by using the ETX OTA Communication Protocol.</p>
-<dl class="section note"><dt>Note</dt><dd>For more details on how the ETX OTA Protocol works, see the <a class="el" href="../../dd/dff/group__bl__side__etx__ota.html">Firmware Update module</a> module. </dd>
+<p>The Application Firmware Image is expected to be received, during the Timeout specified in ETX_CUSTOM_HAL_TIMEOUT, from a certain host via the initialized Hardware Protocol (see <a class="el" href="../../dd/dff/group__bl__side__etx__ota.html#ga637a094d9de8497dde307af1bb9fb61c">init_firmware_update_module</a> function) and by using the ETX OTA Communication Protocol.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may not be able to successfully complete an entire ETX OTA Transaction if there are any Non-Blocking Callback functions working while this function is still running. Therefore, if your program required those type of Callback functions, make sure to stop them before calling this function and then start them again after this function terminates. </dd>
+<dd>
+For more details on how the ETX OTA Protocol works, see the <a class="el" href="../../dd/dff/group__bl__side__etx__ota.html">Firmware Update module</a> module. </dd>
 <dd>
 This function expects that the <a class="el" href="../../d7/d86/group__firmware__update__config.html">Firmware Update Configurations sub-module</a> has already been initialized via the <a class="el" href="../../d7/d86/group__firmware__update__config.html#gab021a0e06bed18957df92a4d4c17853e">firmware_update_configurations_init</a> function.</dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
