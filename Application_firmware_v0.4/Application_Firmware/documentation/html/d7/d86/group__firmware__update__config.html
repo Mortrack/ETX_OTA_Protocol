@@ -253,20 +253,22 @@ While this code was inspired from a code that I, Cesar Miranda Meza, worked when
 <div class="line">   <span class="keywordflow">return</span> 0;</div>
 <div class="line">}</div>
 <div class="ttc" id="afirmware__update__config_8h_html"><div class="ttname"><a href="../../d7/d21/firmware__update__config_8h.html">firmware_update_config.h</a></div><div class="ttdoc">Header file used by the ETX OTA Protocol to store Firmware Update Configurations in Flash Memory.</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_ga042c791006d809c4e74751c61c6b3eb6"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga042c791006d809c4e74751c61c6b3eb6">firmware_update_configurations_write</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_data_t *p_data)</div><div class="ttdoc">Writes a desired Firmware Update Configurations block data into the designated Flash Memory pages of ...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:227</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_ga3c090c80e3e49b7cdeff014206874cbf"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a></div><div class="ttdeci">FirmUpdConf_Status</div><div class="ttdoc">Firmware Update Configurations Exception Codes.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:114</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_ga9e41d7249a4e931e254bc9f1d38f31d6"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga9e41d7249a4e931e254bc9f1d38f31d6">firmware_update_configurations_read</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_read(firmware_update_config_data_t *p_data)</div><div class="ttdoc">Gets the latest Firmware Update Configurations data that has been written into the designated Flash M...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:214</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_gab021a0e06bed18957df92a4d4c17853e"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gab021a0e06bed18957df92a4d4c17853e">firmware_update_configurations_init</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_init()</div><div class="ttdoc">Cycles through the Flash Memory pages that have been designated to the Firmware Update Configurations...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:135</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_gga3c090c80e3e49b7cdeff014206874cbfa64488f27a876c3284ff08d4bb2be1322"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gga3c090c80e3e49b7cdeff014206874cbfa64488f27a876c3284ff08d4bb2be1322">FIRM_UPDT_CONF_EC_NO_DATA</a></div><div class="ttdeci">@ FIRM_UPDT_CONF_EC_NO_DATA</div><div class="ttdoc">Firmware Update Configurations Read Process could not be made because there is currently no existing ...</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:119</div></div>
-<div class="ttc" id="agroup__firmware__update__config_html_gga3c090c80e3e49b7cdeff014206874cbfa8a0d939625e2c0f207aee3ca2cfb3ac8"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gga3c090c80e3e49b7cdeff014206874cbfa8a0d939625e2c0f207aee3ca2cfb3ac8">FIRM_UPDT_CONF_EC_OK</a></div><div class="ttdeci">@ FIRM_UPDT_CONF_EC_OK</div><div class="ttdoc">Firmware Update Configurations Process was successful.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:115</div></div>
-<div class="ttc" id="agroup__main_html_ga840291bc02cba5474a4cb46a9b9566fe"><div class="ttname"><a href="../../d3/dab/group__main.html#ga840291bc02cba5474a4cb46a9b9566fe">main</a></div><div class="ttdeci">int main(void)</div><div class="ttdoc">The application entry point.</div><div class="ttdef"><b>Definition</b> main.c:154</div></div>
-<div class="ttc" id="astructfirmware__update__config__data__t_html"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html">firmware_update_config_data_t</a></div><div class="ttdoc">Firmware Update Configurations Data parameters structure. This contains all the fields of the data th...</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:154</div></div>
-<div class="ttc" id="astructfirmware__update__config__data__t_html_a06fb1d74a2c32b7899a246fba90a16c8"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#a06fb1d74a2c32b7899a246fba90a16c8">firmware_update_config_data_t::BL_fw_size</a></div><div class="ttdeci">uint32_t BL_fw_size</div><div class="ttdoc">Size in bytes of the Bootloader Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:155</div></div>
-<div class="ttc" id="astructfirmware__update__config__data__t_html_a6c955b397512f0681d0d094579d1ec6a"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#a6c955b397512f0681d0d094579d1ec6a">firmware_update_config_data_t::App_fw_rec_crc</a></div><div class="ttdeci">uint32_t App_fw_rec_crc</div><div class="ttdoc">Recorded CRC of the Application Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:158</div></div>
-<div class="ttc" id="astructfirmware__update__config__data__t_html_ad25006aadd381274af3fedea1a3b3c3d"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#ad25006aadd381274af3fedea1a3b3c3d">firmware_update_config_data_t::BL_fw_rec_crc</a></div><div class="ttdeci">uint32_t BL_fw_rec_crc</div><div class="ttdoc">Recorded CRC of the Bootloader Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:156</div></div>
-<div class="ttc" id="astructfirmware__update__config__data__t_html_aff9498aa5ef46c2ba2b0f1b4ab93fb3f"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#aff9498aa5ef46c2ba2b0f1b4ab93fb3f">firmware_update_config_data_t::App_fw_size</a></div><div class="ttdeci">uint32_t App_fw_size</div><div class="ttdoc">Size in bytes of the Application Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:157</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_ga042c791006d809c4e74751c61c6b3eb6"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga042c791006d809c4e74751c61c6b3eb6">firmware_update_configurations_write</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_data_t *p_data)</div><div class="ttdoc">Writes a desired Firmware Update Configurations block data into the designated Flash Memory pages of ...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:229</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_ga3c090c80e3e49b7cdeff014206874cbf"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a></div><div class="ttdeci">FirmUpdConf_Status</div><div class="ttdoc">Firmware Update Configurations Exception Codes.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:115</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_ga9e41d7249a4e931e254bc9f1d38f31d6"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#ga9e41d7249a4e931e254bc9f1d38f31d6">firmware_update_configurations_read</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_read(firmware_update_config_data_t *p_data)</div><div class="ttdoc">Gets the latest Firmware Update Configurations data that has been written into the designated Flash M...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:215</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_gab021a0e06bed18957df92a4d4c17853e"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gab021a0e06bed18957df92a4d4c17853e">firmware_update_configurations_init</a></div><div class="ttdeci">FirmUpdConf_Status firmware_update_configurations_init()</div><div class="ttdoc">Cycles through the Flash Memory pages that have been designated to the Firmware Update Configurations...</div><div class="ttdef"><b>Definition</b> firmware_update_config.c:138</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_gga3c090c80e3e49b7cdeff014206874cbfa64488f27a876c3284ff08d4bb2be1322"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gga3c090c80e3e49b7cdeff014206874cbfa64488f27a876c3284ff08d4bb2be1322">FIRM_UPDT_CONF_EC_NO_DATA</a></div><div class="ttdeci">@ FIRM_UPDT_CONF_EC_NO_DATA</div><div class="ttdoc">Firmware Update Configurations Read Process could not be made because there is currently no existing ...</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:120</div></div>
+<div class="ttc" id="agroup__firmware__update__config_html_gga3c090c80e3e49b7cdeff014206874cbfa8a0d939625e2c0f207aee3ca2cfb3ac8"><div class="ttname"><a href="../../d7/d86/group__firmware__update__config.html#gga3c090c80e3e49b7cdeff014206874cbfa8a0d939625e2c0f207aee3ca2cfb3ac8">FIRM_UPDT_CONF_EC_OK</a></div><div class="ttdeci">@ FIRM_UPDT_CONF_EC_OK</div><div class="ttdoc">Firmware Update Configurations Process was successful.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:116</div></div>
+<div class="ttc" id="agroup__main_html_ga840291bc02cba5474a4cb46a9b9566fe"><div class="ttname"><a href="../../d3/dab/group__main.html#ga840291bc02cba5474a4cb46a9b9566fe">main</a></div><div class="ttdeci">int main(void)</div><div class="ttdoc">The application entry point.</div><div class="ttdef"><b>Definition</b> main.c:155</div></div>
+<div class="ttc" id="astructfirmware__update__config__data__t_html"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html">firmware_update_config_data_t</a></div><div class="ttdoc">Firmware Update Configurations Data parameters structure. This contains all the fields of the data th...</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:155</div></div>
+<div class="ttc" id="astructfirmware__update__config__data__t_html_a06fb1d74a2c32b7899a246fba90a16c8"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#a06fb1d74a2c32b7899a246fba90a16c8">firmware_update_config_data_t::BL_fw_size</a></div><div class="ttdeci">uint32_t BL_fw_size</div><div class="ttdoc">Size in bytes of the Bootloader Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:156</div></div>
+<div class="ttc" id="astructfirmware__update__config__data__t_html_a6c955b397512f0681d0d094579d1ec6a"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#a6c955b397512f0681d0d094579d1ec6a">firmware_update_config_data_t::App_fw_rec_crc</a></div><div class="ttdeci">uint32_t App_fw_rec_crc</div><div class="ttdoc">Recorded CRC of the Application Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:159</div></div>
+<div class="ttc" id="astructfirmware__update__config__data__t_html_ad25006aadd381274af3fedea1a3b3c3d"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#ad25006aadd381274af3fedea1a3b3c3d">firmware_update_config_data_t::BL_fw_rec_crc</a></div><div class="ttdeci">uint32_t BL_fw_rec_crc</div><div class="ttdoc">Recorded CRC of the Bootloader Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:157</div></div>
+<div class="ttc" id="astructfirmware__update__config__data__t_html_aff9498aa5ef46c2ba2b0f1b4ab93fb3f"><div class="ttname"><a href="../../d7/d98/structfirmware__update__config__data__t.html#aff9498aa5ef46c2ba2b0f1b4ab93fb3f">firmware_update_config_data_t::App_fw_size</a></div><div class="ttdeci">uint32_t App_fw_size</div><div class="ttdoc">Size in bytes of the Application Firmware Image currently being run by our MCU/MPU.</div><div class="ttdef"><b>Definition</b> firmware_update_config.h:158</div></div>
 </div><!-- fragment --><dl class="section author"><dt>Author</dt><dd>Cesar Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>November 14, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>November 14, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="gad8e36314fceab25cba80fb8acd59b689" name="gad8e36314fceab25cba80fb8acd59b689"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gad8e36314fceab25cba80fb8acd59b689">&#9670;&#160;</a></span>FIRMWARE_UPDATE_CONFIG_END_ADDR_PLUS_ONE</h2>
@@ -445,7 +447,9 @@ During the execution of this function, The Flash Memory address of the Firmware 
   </dd>
 </dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
 <p><b>Local variable ret:</b> Used to hold the exception code value returned by a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> function.</p>
 <p><b>Local variable cal_crc:</b> Value holder for the calculated 32-bit CRC of the Data Block to which the <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga4493d909e38c669637923c7d138c5164">p_most_recent_val</a> pointer points to.</p>
 <p><b>Local variable p_next_val:</b> Firmware Update Configurations Block pointer that should point to the Firmware Update Configurations Block located right after the one with the most recently written value (i.e., right after the Data Block to which the <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga4493d909e38c669637923c7d138c5164">p_most_recent_val</a> pointer points to).</p>
@@ -485,7 +489,9 @@ During the execution of this function, The Flash Memory address of the Firmware 
   </dd>
 </dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
 
 </div>
 </div>
@@ -524,7 +530,9 @@ During the execution of this function, The Flash Memory address of the Firmware 
   </dd>
 </dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
 <p><b>Local variable ret:</b> Return value of a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> function.</p>
 <p><b>Local variable new_val_struct:</b> New Data Block into which we will pass the data that wants to be written and where we will also set the corresponding flag and CRC32 values for it.</p>
 <p><b>Local pointer p_new_val_struct:</b> Pointer to the <code>new_val_struct</code> data but in <code>uint32_t</code> Type.</p>
@@ -620,7 +628,10 @@ During the execution of this function, The Flash Memory address of the Firmware 
 </dl>
 <dl class="section note"><dt>Note</dt><dd>For more details, see <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> .</dd></dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>October 13, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
+<p><b>Local variable ret:</b> uin8_t Type variable used to hold the return value of either a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> or a HAL_StatusTypeDef function.</p>
 
 </div>
 </div>
@@ -661,8 +672,10 @@ See <a class="el" href="../../d7/d86/group__firmware__update__config.html#gaa77d
 </dl>
 <dl class="section note"><dt>Note</dt><dd>For more details, see <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> .</dd></dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd></dl>
-<p><b>Local variable ret:</b> Return value of a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> function.</p>
+<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
+<p><b>Local variable ret:</b> <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> Type variable used to hold the return value of a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> function.</p>
 
 </div>
 </div>
@@ -700,7 +713,9 @@ See <a class="el" href="../../d7/d86/group__firmware__update__config.html#gaa77d
 </dl>
 <dl class="section note"><dt>Note</dt><dd>For more details, see <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> .</dd></dl>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>September 26, 2023. </dd>
+<dd>
+LAST UPDATE: February 07, 2024. </dd></dl>
 <p><b>Local variable ret:</b> Return value of a <a class="el" href="../../d7/d86/group__firmware__update__config.html#ga3c090c80e3e49b7cdeff014206874cbf">FirmUpdConf_Status</a> function.</p>
 
 </div>
