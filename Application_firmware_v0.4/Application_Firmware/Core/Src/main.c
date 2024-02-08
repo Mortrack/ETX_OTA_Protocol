@@ -77,6 +77,7 @@ UART_HandleTypeDef huart3;
 const uint8_t APP_version[2] = {MAJOR, MINOR};		/**< @brief Global array variable used to hold the Major and Minor version number of our MCU/MPU's Application Firmware in the 1st and 2nd byte respectively. */
 firmware_update_config_data_t fw_config;			        /**< @brief Global struct used to either pass to it the data that we want to write into the designated Flash Memory pages of the @ref firmware_update_config sub-module or, in the case of a read request, where that sub-module will write the latest data contained in the sub-module. */
 etx_ota_custom_data_t etx_ota_custom_data;			        /**< @brief	Global struct where it is desired to hold the handling data for any received ETX OTA Custom Data. */
+static HM10_GPIO_def_t GPIO_is_hm10_default_settings;       /**< @brief Global variable that will to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 BT Device or not. */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -441,8 +442,6 @@ static void custom_init_etx_ota_protocol_module(ETX_OTA_hw_Protocol hw_protocol,
     ETX_OTA_Status ret;
 
     printf("Initializing the ETX OTA Firmware Update Module.\r\n");
-    /** <b>Local variable GPIO_is_hm10_default_settings:</b> Used to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 BT Device or not. */
-    HM10_GPIO_def_t GPIO_is_hm10_default_settings;
     GPIO_is_hm10_default_settings.GPIO_Port = GPIO_is_hm10_default_settings_Port;
     GPIO_is_hm10_default_settings.GPIO_Pin = GPIO_is_hm10_default_settings_Pin;
 

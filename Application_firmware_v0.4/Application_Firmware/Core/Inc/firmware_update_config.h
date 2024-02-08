@@ -91,7 +91,8 @@
  *
  *
  * @author Cesar Miranda Meza (cmirandameza3@hotmail.com)
- * @date November 14, 2023.
+ * @date    November 14, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 
 #ifndef FIRMWARE_UPDATE_CONFIG_H_
@@ -180,7 +181,8 @@ typedef struct __attribute__ ((__packed__))
  * @retval	FIRM_UPDT_CONF_EC_CRPT
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date September 26, 2023.
+ * @date    September 26, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 FirmUpdConf_Status firmware_update_configurations_init();
 
@@ -202,7 +204,8 @@ FirmUpdConf_Status firmware_update_configurations_init();
  * @retval				FIRM_UPDT_CONF_EC_NO_DATA
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date October 13, 2023.
+ * @date    October 13, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 FirmUpdConf_Status  firmware_update_configurations_read(firmware_update_config_data_t *p_data);
 
@@ -227,7 +230,8 @@ FirmUpdConf_Status  firmware_update_configurations_read(firmware_update_config_d
  * @retval				FIRM_UPDT_CONF_EC_ERR
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date October 13, 2023.
+ * @date    October 13, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_data_t *p_data);
 

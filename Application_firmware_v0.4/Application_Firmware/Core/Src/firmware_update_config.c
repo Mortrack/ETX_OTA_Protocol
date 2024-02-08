@@ -69,7 +69,8 @@ static firmware_update_config_t *p_most_recent_val = NULL;																		/**<
  * @note	For more details, see @ref FirmUpdConf_Status .
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date September 26, 2023.
+ * @date    September 26, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 static FirmUpdConf_Status restore_firm_updt_config_flash_memory();
 
@@ -90,7 +91,8 @@ static FirmUpdConf_Status restore_firm_updt_config_flash_memory();
  * @note	For more details, see @ref FirmUpdConf_Status .
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date September 26, 2023.
+ * @date    September 26, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 static FirmUpdConf_Status prep_page_swap();
 
@@ -112,7 +114,8 @@ static FirmUpdConf_Status prep_page_swap();
  * @note	For more details, see @ref FirmUpdConf_Status .
  *
  * @author	César Miranda Meza (cmirandameza3@hotmail.com)
- * @date October 13, 2023.
+ * @date    October 13, 2023.
+ * @date    LAST UPDATE: February 07, 2024.
  */
 static FirmUpdConf_Status page_erase(uint32_t *page_start_addr);
 
@@ -195,39 +198,38 @@ FirmUpdConf_Status firmware_update_configurations_init()
 
 	/* If one of the designated Flash Memory pages of the Firmware Update Configurations sub-module is full, then erase it. */
 	ret = prep_page_swap();
-	if (ret != FIRM_UPDT_CONF_EC_OK)
-	{
-		#if ETX_OTA_VERBOSE
-			printf("ERROR: The Firmware Update Configurations sub-module could not be initialized.\r\n");
-		#endif
-	}
-	else
-	{
-		#if ETX_OTA_VERBOSE
-			printf("DONE: The Firmware Update Configurations sub-module was successfully initialized.\r\n");
-		#endif
-	}
+    #if ETX_OTA_VERBOSE
+        if (ret != FIRM_UPDT_CONF_EC_OK)
+        {
+            printf("ERROR: The Firmware Update Configurations sub-module could not be initialized.\r\n");
+        }
+        else
+        {
+            printf("DONE: The Firmware Update Configurations sub-module was successfully initialized.\r\n");
+        }
+    #endif
 
 	return ret;
 }
 
 FirmUpdConf_Status firmware_update_configurations_read(firmware_update_config_data_t *p_data)
 {
-	firmware_update_config_t *p_current_val = p_most_recent_val;
-	if (p_current_val == NULL)
-	{
-		p_current_val = (firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_START_ADDR;
-	}
+    firmware_update_config_t *p_current_val = p_most_recent_val;
+    if (p_current_val == NULL)
+    {
+        p_current_val = (firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_START_ADDR;
+        memcpy(p_data, &(p_current_val->data), FIRMWARE_UPDATE_CONFIG_DATA_SIZE);
+        return FIRM_UPDT_CONF_EC_NO_DATA;
+    }
 
-	memcpy(p_data, &(p_current_val->data), FIRMWARE_UPDATE_CONFIG_DATA_SIZE);
-
-	return FIRM_UPDT_CONF_EC_OK;
+    memcpy(p_data, &(p_current_val->data), FIRMWARE_UPDATE_CONFIG_DATA_SIZE);
+    return FIRM_UPDT_CONF_EC_OK;
 }
 
 FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_data_t *p_data)
 {
 	/** <b>Local variable ret:</b> Return value of a @ref FirmUpdConf_Status function. */
-	uint16_t ret;
+	uint8_t ret;
 	/**	<b>Local variable new_val_struct:</b> New Data Block into which we will pass the data that wants to be written and where we will also set the corresponding flag and CRC32 values for it. */
 	firmware_update_config_t new_val_struct;
 	/**	<b>Local pointer p_new_val_struct:</b> Pointer to the \c new_val_struct data but in \c uint32_t Type. */
@@ -236,13 +238,13 @@ FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_d
 	firmware_update_config_t *p_next_val = (firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_START_ADDR;
 
 	/* We pass the received data into a new Data Block structure and we calculate and also set its corresponding 32-bit CRC. */
-	new_val_struct.flags.is_erased = FLASH_BLOCK_NOT_ERASED;
-	new_val_struct.flags.reserved1 = DATA_BLOCK_8BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
-	new_val_struct.flags.reserved2 = DATA_BLOCK_16BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
-	p_data->reserved1 = DATA_BLOCK_32BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
-	p_data->reserved2 = DATA_BLOCK_16BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
-	memcpy(&new_val_struct.data, p_data, FIRMWARE_UPDATE_CONFIG_DATA_SIZE);
-	new_val_struct.crc32 = crc32_mpeg2((uint8_t *) &new_val_struct.data, FIRMWARE_UPDATE_CONFIG_BLOCK_SIZE_WITHOUT_CRC);
+    memcpy(&new_val_struct.data, p_data, FIRMWARE_UPDATE_CONFIG_DATA_SIZE);
+    new_val_struct.data.reserved1 = DATA_BLOCK_32BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
+    new_val_struct.data.reserved2 = DATA_BLOCK_16BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
+    new_val_struct.flags.reserved2 = DATA_BLOCK_16BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
+    new_val_struct.flags.reserved1 = DATA_BLOCK_8BIT_ERASED_VALUE; // Make sure to keep reserved data's bits set to 1's.
+    new_val_struct.flags.is_erased = FLASH_BLOCK_NOT_ERASED;
+    new_val_struct.crc32 = crc32_mpeg2((uint8_t *) &new_val_struct.data, FIRMWARE_UPDATE_CONFIG_BLOCK_SIZE_WITHOUT_CRC);
 
 	/* We calculate the next available address. */
 	if (p_most_recent_val != NULL)
@@ -309,7 +311,7 @@ FirmUpdConf_Status firmware_update_configurations_write(firmware_update_config_d
 static FirmUpdConf_Status restore_firm_updt_config_flash_memory()
 {
 	/** <b>Local variable ret:</b> Return value of a @ref FirmUpdConf_Status function. */
-	uint16_t ret;
+    FirmUpdConf_Status ret;
 
 	#if ETX_OTA_VERBOSE
 		printf("Erasing all Flash Memory pages from the Firmware Update Configurations sub-module to restore their functionalities...\r\n");
@@ -322,7 +324,7 @@ static FirmUpdConf_Status restore_firm_updt_config_flash_memory()
 		#endif
 		return ret;
 	}
-	page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR);
+	ret = page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR);
 	if (ret != FIRM_UPDT_CONF_EC_OK)
 	{
 		#if ETX_OTA_VERBOSE
@@ -339,53 +341,49 @@ static FirmUpdConf_Status restore_firm_updt_config_flash_memory()
 
 static FirmUpdConf_Status prep_page_swap()
 {
-	/** <b>Local variable ret:</b> Return value of a @ref FirmUpdConf_Status function. */
-	uint16_t ret;
+    /** <b>Local variable ret:</b> @ref FirmUpdConf_Status Type variable used to hold the return value of a @ref FirmUpdConf_Status function. */
+    FirmUpdConf_Status ret;
 	#if ETX_OTA_VERBOSE
 		printf("Preparing the Firmware Update Configurations sub-module for a possible future page swap...\r\n");
 	#endif
 
 	/* If one of the designated Flash Memory pages of the Firmware Update Configurations sub-module is full, then erase it. */
-	if (p_most_recent_val == ((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_PAGE_1_START_ADDR) &&
-	   (((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_END_ADDR_PLUS_ONE)-1)->flags.is_erased == FLASH_BLOCK_NOT_ERASED)
-	{
-		#if ETX_OTA_VERBOSE
-			printf("Requesting to erase Firmware Update Configuration's page 2...\r\n");
-		#endif
-		ret = page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR);
-		if (ret != FIRM_UPDT_CONF_EC_OK)
-		{
-			#if ETX_OTA_VERBOSE
-				printf("ERROR: The Firmware Update Configuration's page 2 could not be erased.\r\n");
-			#endif
-		}
-		else
-		{
-			#if ETX_OTA_VERBOSE
-				printf("DONE: The Firmware Update Configuration's page 2 was successfully erased.\r\n");
-			#endif
-		}
-	}
-	else if (p_most_recent_val == ((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR) &&
-			(p_most_recent_val-1)->flags.is_erased == FLASH_BLOCK_NOT_ERASED)
-	{
-		#if ETX_OTA_VERBOSE
-			printf("Requesting to erase Firmware Update Configuration's page 1...\r\n");
-		#endif
-		ret = page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_1_START_ADDR);
-		if (ret != FIRM_UPDT_CONF_EC_OK)
-		{
-			#if ETX_OTA_VERBOSE
-				printf("ERROR: The Firmware Update Configuration's page 1 could not be erased.\r\n");
-			#endif
-		}
-		else
-		{
-			#if ETX_OTA_VERBOSE
-				printf("DONE: The Firmware Update Configuration's page 1 was successfully erased.\r\n");
-			#endif
-		}
-	}
+    if (p_most_recent_val == ((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_PAGE_1_START_ADDR) &&
+        (((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_END_ADDR_PLUS_ONE)-1)->flags.is_erased == FLASH_BLOCK_NOT_ERASED)
+    {
+        #if ETX_OTA_VERBOSE
+            printf("Requesting to erase Firmware Update Configuration's page 2...\r\n");
+        #endif
+        ret = page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR);
+        #if ETX_OTA_VERBOSE
+            if (ret != FIRM_UPDT_CONF_EC_OK)
+            {
+                printf("ERROR: The Firmware Update Configuration's page 2 could not be erased.\r\n");
+            }
+            else
+            {
+                printf("DONE: The Firmware Update Configuration's page 2 was successfully erased.\r\n");
+            }
+        #endif
+    }
+    else if (p_most_recent_val == ((firmware_update_config_t *) FIRMWARE_UPDATE_CONFIG_PAGE_2_START_ADDR) &&
+             (p_most_recent_val-1)->flags.is_erased == FLASH_BLOCK_NOT_ERASED)
+    {
+        #if ETX_OTA_VERBOSE
+            printf("Requesting to erase Firmware Update Configuration's page 1...\r\n");
+        #endif
+        ret = page_erase((uint32_t *) FIRMWARE_UPDATE_CONFIG_PAGE_1_START_ADDR);
+        #if ETX_OTA_VERBOSE
+            if (ret != FIRM_UPDT_CONF_EC_OK)
+            {
+                printf("ERROR: The Firmware Update Configuration's page 1 could not be erased.\r\n");
+            }
+            else
+            {
+                printf("DONE: The Firmware Update Configuration's page 1 was successfully erased.\r\n");
+            }
+        #endif
+    }
 	else
 	{
 		ret = FIRM_UPDT_CONF_EC_OK;
@@ -402,7 +400,8 @@ static FirmUpdConf_Status page_erase(uint32_t *page_start_addr)
 	#if ETX_OTA_VERBOSE
 		printf("Erasing the Flash memory page that starts at address 0x%08X...\r\n", (unsigned int) page_start_addr);
 	#endif
-	HAL_StatusTypeDef ret;
+    /** <b>Local variable ret:</b> @ref uin8_t Type variable used to hold the return value of either a @ref FirmUpdConf_Status or a @ref HAL_StatusTypeDef function. */
+    uint8_t ret;
 
 	/* Unlock HAL Flash */
 	ret = HAL_FLASH_Unlock();

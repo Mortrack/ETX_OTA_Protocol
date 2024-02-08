@@ -98,8 +98,9 @@ UART_HandleTypeDef huart3;
 // NOTE: "huart1" is used for debugging messages via printf() from stdio.h library.
 // NOTE: "huart2" is used for communicating with the host that will be sending firmware images to our MCU via the ETX OTA Protocol with the UART Hardware Protocol.
 // NOTE: "huart3" is used for communicating with the host that will be sending firmware images to our MCU via the ETX OTA Protocol with the BT Hardware Protocol.
-const uint8_t BL_version[2] = {MAJOR, MINOR};   /**< @brief Global array variable used to hold the Major and Minor version number of our MCU/MPU's Bootloader Firmware in the 1st and 2nd byte respectively. */
-firmware_update_config_data_t fw_config;				/**< @brief Global struct used to either pass to it the data that we want to write into the designated Flash Memory pages of the @ref firmware_update_config sub-module or, in the case of a read request, where that sub-module will write the latest data contained in the sub-module. */
+const uint8_t BL_version[2] = {MAJOR, MINOR};    /**< @brief Global array variable used to hold the Major and Minor version number of our MCU/MPU's Bootloader Firmware in the 1st and 2nd byte respectively. */
+firmware_update_config_data_t fw_config;				 /**< @brief Global struct used to either pass to it the data that we want to write into the designated Flash Memory pages of the @ref firmware_update_config sub-module or, in the case of a read request, where that sub-module will write the latest data contained in the sub-module. */
+static HM10_GPIO_def_t GPIO_is_hm10_default_settings;    /**< @brief Global variable that will to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 BT Device or not. */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -301,8 +302,9 @@ int main(void)
 				break;
 			case ETX_OTA_EC_ERR:
 				#if ETX_OTA_VERBOSE
-				printf("ERROR: ETX OTA process has failed. Try again...\r\n");
-				#endif
+				    printf("ERROR: ETX OTA process has failed. Try again...\r\n");
+                #endif
+                current_tick = HAL_GetTick();
 				break;
 			default:
 				#if ETX_OTA_VERBOSE
@@ -594,8 +596,6 @@ static void custom_init_etx_ota_protocol_module(ETX_OTA_hw_Protocol hw_protocol,
     #if ETX_OTA_VERBOSE
         printf("Initializing the ETX OTA Firmware Update Module.\r\n");
     #endif
-    /** <b>Local variable GPIO_is_hm10_default_settings:</b> Used to hold the GPIO pin parameters of the Input Mode GPIO Pin to be used so that our MCU can know whether the user wants it to set the default configuration settings in the HM-10 BT Device or not. */
-    HM10_GPIO_def_t GPIO_is_hm10_default_settings;
     GPIO_is_hm10_default_settings.GPIO_Port = GPIO_is_hm10_default_settings_Port;
     GPIO_is_hm10_default_settings.GPIO_Pin = GPIO_is_hm10_default_settings_Pin;
 
