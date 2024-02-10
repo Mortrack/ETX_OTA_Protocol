@@ -8,7 +8,7 @@
  * @brief   This module contains both the default and the application ETX OTA Protocol Configuration Files.
  *
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
- * @date	December 12, 2023.
+ * @date	February 09, 2024.
  */
 
 /**@file
@@ -27,7 +27,7 @@
  *          value of 1.
  *
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
- * @date	December 12, 2023.
+ * @date	February 09, 2024.
  */
 
 #define ETX_OTA_CONFIG_H_
@@ -42,7 +42,7 @@
  *          @ref etx_ota_config .
  *
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
- * @date	November 17, 2023.
+ * @date	February 09, 2024.
  */
 
 #define ENABLE_APP_ETX_OTA_CONFIG           (0)          		/**< @brief Flag used to enable the use of @ref app_etx_ota_config with a 1 or, otherwise to disable it with a 0. */
@@ -83,6 +83,10 @@
 
 #ifndef ETX_CUSTOM_HAL_TIMEOUT
 #define ETX_CUSTOM_HAL_TIMEOUT				(9000U)				/**< @brief Designated time in milliseconds for the HAL Timeout to be requested during each FLASH and UART request where the ETX OTA protocol is to be used on. @note For more details see @ref FLASH_WaitForLastOperation and @ref HAL_UART_Receive . */
+#endif
+
+#ifndef PRE_ETX_OTA_REQUESTS_HEARING_DELAY
+#define PRE_ETX_OTA_REQUESTS_HEARING_DELAY	(3000)				/**< @brief This delay is generated to give time to the mian program of the Bootloader Firmware to establish a Bluetooth Connection, if any, before jumping into the stage where that main program listens for any available ETX OTA Requests. @note If the UART is used instead of the Bluetooth as a communication channel means for the ETX OTA Protocol, this delay can be changed to zero at the @ref app_etx_ota_config if desired. Otherwise, this value can be leaved at its default value and the ETX OTA Protocol should still work as expected. */
 #endif
 
 /** @} */ //default_etx_ota_firmware_update_settings

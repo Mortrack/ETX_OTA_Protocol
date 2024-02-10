@@ -55,7 +55,7 @@
  *          strictly required and expected by the Application Firmware Installations that uses the ETX OTA Protocol.
  *
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
- * @date	December 13, 2023.
+ * @date	February 09, 2024.
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -186,6 +186,15 @@ static void validate_bootloader_firmware(void);
  */
 static void validate_application_firmware(uint8_t *is_app_fw_validation_ok);
 
+/**@brief	Flushes the Rx of a desired UART.
+ *
+ * @param[in] p_huart	Pointer towards the UART from which it is desired to flush its Rx.
+ *
+ * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)
+ * @date	February 08, 2024.
+ */
+static void HAL_uart_rx_flush(UART_HandleTypeDef *p_huart);
+
 /**@brief	Makes our MCU/MPU to jump into its Application Firmware.
  *
  * @author	César Miranda Meza
@@ -251,6 +260,10 @@ int main(void)
   /* Validate both the Bootloader and Application Firmwares in our MCU/MPU. */
   validate_bootloader_firmware();
   validate_application_firmware(&is_app_fw_validation_ok);
+
+  /* Execute the Delay for the Pre ETX OTA Requests Hearing stage and then flush the Rx of the UART from which the ETX OTA Protocol will be used in this MCU/MPU. */
+  HAL_Delay(PRE_ETX_OTA_REQUESTS_HEARING_DELAY);
+  HAL_uart_rx_flush(&huart3);
 
   /*
    Check if a Firmware Image is received during the next @ref ETX_CUSTOM_HAL_TIMEOUT seconds and, if true, install it
@@ -675,6 +688,21 @@ static void validate_application_firmware(uint8_t *is_app_fw_validation_ok)
     #if ETX_OTA_VERBOSE
 		printf("DONE: Application Firmware of our MCU/MPU has been successfully validated.\r\n");
 	#endif
+}
+
+static void HAL_uart_rx_flush(UART_HandleTypeDef *p_huart)
+{
+    /** <b>Local variable ret:</b> @ref HAL_StatusTypeDef Type variable used to hold the return value of a HAL function type. */
+    HAL_StatusTypeDef  ret;
+    /** <b>Local variable buff:</b> @ref uint8_t Type variable used to temporarily hold an available byte of data from the UART from which it is desired to flush its Rx. */
+    uint8_t buff;
+
+    /* Receive the HM-10 Device's BT data that is received Over the Air (OTA), if there is any. */
+    ret = HAL_UART_Receive(p_huart, &buff, 1, 1);
+    if (ret != HAL_TIMEOUT)
+    {
+        HAL_uart_rx_flush(p_huart);
+    }
 }
 
 static void goto_application_firmware(void)
