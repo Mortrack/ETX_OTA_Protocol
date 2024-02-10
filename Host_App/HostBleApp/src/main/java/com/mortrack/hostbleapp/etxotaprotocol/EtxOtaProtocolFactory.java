@@ -181,7 +181,7 @@ public abstract class EtxOtaProtocolFactory {
      *          an ETX OTA Transaction, but that should be evaded by making a
      *          second attempt with the delay established in this variable.
      */
-    private int tryAgainSendingFwiDelay = 5000000;
+    private int tryAgainSendingFwiDelay = 9000000;
     
     /**@brief   Time in microseconds that is to be requested for waiting for
      *          establishing a Bluetooth Connection between our HM-10 BT Dongle

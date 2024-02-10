@@ -79,7 +79,7 @@
 #endif
 
 #ifndef TRY_AGAIN_SENDING_FWI_DELAY
-#define TRY_AGAIN_SENDING_FWI_DELAY         (5000000)       /**< @brief Designated delay in microseconds that it is to be requested to apply in case that starting an ETX OTA Transaction fails once only. @note The slave device sometimes does not get the start of an ETX OTA Transaction after its UART Timeout expires, which is expected since there is some code in the loop that the slave device has there that makes it do something else before waiting again for an ETX OTA Transaction, but that should be evaded by making a second attempt with the delay established in this variable. */
+#define TRY_AGAIN_SENDING_FWI_DELAY         (9000000)       /**< @brief Designated delay in microseconds that it is to be requested to apply in case that starting an ETX OTA Transaction fails once only. @note The slave device sometimes does not get the start of an ETX OTA Transaction after its UART Timeout expires, which is expected since there is some code in the loop that the slave device has there that makes it do something else before waiting again for an ETX OTA Transaction, but that should be evaded by making a second attempt with the delay established in this variable. */
 #endif
 
 #ifndef CUSTOM_DATA_MAX_SIZE

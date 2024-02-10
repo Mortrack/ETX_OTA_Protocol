@@ -3,7 +3,7 @@ var searchData=
   ['reserved1_0',['reserved1',['../da/d22/structheader__data__t.html#afb4cb9ad52dc1413a8182c16b830de0d',1,'header_data_t']]],
   ['reserved2_1',['reserved2',['../da/d22/structheader__data__t.html#a60f9313f7f5f32ee93f9ede5cba05cbb',1,'header_data_t']]],
   ['reserved3_2',['reserved3',['../da/d22/structheader__data__t.html#a796c61a00f3afeed49adc559aac5ddc2',1,'header_data_t']]],
-  ['rs_2d232_3',['RS-232',['../df/d41/md__c_1_2_users_2cmira_2_one_drive_2_escritorio_2_bootloader_01_project_01v0_84_2_pc_tool___app_d1c61786bfb58f0be12201e747b21954.html',1,'']]],
+  ['rs_2d232_3',['RS-232',['../d2/d78/md__c_1_2_users_2cmira_2_one_drive_2_escritorio_2_git_hub_2_e_t_x___o_t_a___protocol_2_pc_tool__ce8e5de3e52a8a3854d22b200b5ba670.html',1,'']]],
   ['rs232_2eh_4',['rs232.h',['../dd/d8b/rs232_8h.html',1,'']]],
   ['rs232_5fbaudrate_5',['RS232_BAUDRATE',['../d5/d56/group__etx__ota__config.html#ga1737c1c522990a4045fb52653baaa056',1,'etx_ota_config.h']]],
   ['rs232_5fclosecomport_6',['RS232_CloseComport',['../d1/d82/group__teuniz__rs232__library.html#ga2af3e3f582823e7dce5a8b351ff4395e',1,'RS232_CloseComport(int comport_number):&#160;rs232.c'],['../d1/d82/group__teuniz__rs232__library.html#ga2af3e3f582823e7dce5a8b351ff4395e',1,'RS232_CloseComport(int comport_number):&#160;rs232.c']]],
