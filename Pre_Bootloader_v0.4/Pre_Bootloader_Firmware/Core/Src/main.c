@@ -249,7 +249,7 @@ static FirmUpdConf_Status custom_firmware_update_config_init()
 	/** <b>Local variable end_tick:</b> Defines the HAL Tick that our MCU/MPU needs to reach so that 0.5 seconds have passed with respect to the moment that this function is called. */
 	uint32_t end_tick = HAL_GetTick() + 500;
 	/** <b>Local variable current_tick:</b> Current HAL Tick in our MCU/MPU. */
-	uint32_t current_tick;
+	uint32_t current_tick = 0;
 
 	if (attempts > 2)
 	{

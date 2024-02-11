@@ -77,6 +77,12 @@
  *          sending some data, where in this particular case, the ETX OTA Protocol's code only takes control over the
  *          application right after our MCU/MPU starts an ETX OTA Transaction with a certain host device and will
  *          eventually release the control, but only after that transaction concludes.
+ * @note    <b style="color:orange">IMPORTANT:</b> The @ref hm10_ble , which is included by this @ref app_side_etx_ota
+ *          (via @ref firmware_update_config --> @ref etx_ota_config ) has included the "stm32f1xx_hal.h" header file
+ *          to be able to use HAL functions in this module. However, this header file is specifically meant for the
+ *          STM32F1 series devices. If yours is from a different type, then you will have to substitute the right one
+ *          here for your particular STMicroelectronics device. However, if you cant figure out what the name of that
+ *          header file is, then simply substitute that line of code from this @ref hm10_ble by: #include "main.h"
  * @note    For an application code example of this module, see the application code example inside the main.c file.
  *
  * @author 	Cesar Miranda Meza (cmirandameza3@hotmail.com)

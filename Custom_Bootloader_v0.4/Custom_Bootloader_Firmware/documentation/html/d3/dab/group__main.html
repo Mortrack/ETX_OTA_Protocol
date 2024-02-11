@@ -149,6 +149,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gae9e64c186119d18ce2a26b4df54f75dd"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/dab/group__main.html#gae9e64c186119d18ce2a26b4df54f75dd">validate_application_firmware</a> (uint8_t *is_app_fw_validation_ok)</td></tr>
 <tr class="memdesc:gae9e64c186119d18ce2a26b4df54f75dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Validates the CRC of our MCU/MPU's current Application Firmware.  <br /></td></tr>
 <tr class="separator:gae9e64c186119d18ce2a26b4df54f75dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6812028b76e97ca8b7ac14de77568da5"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/dab/group__main.html#ga6812028b76e97ca8b7ac14de77568da5">HAL_uart_rx_flush</a> (UART_HandleTypeDef *<a class="el" href="../../dd/dff/group__bl__side__etx__ota.html#ga89654158a1ad435ead0c6985c85b1932">p_huart</a>)</td></tr>
+<tr class="memdesc:ga6812028b76e97ca8b7ac14de77568da5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flushes the Rx of a desired UART.  <br /></td></tr>
+<tr class="separator:ga6812028b76e97ca8b7ac14de77568da5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gacafedc0813afcec11b7ead2ffddcaf64"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/dab/group__main.html#gacafedc0813afcec11b7ead2ffddcaf64">goto_application_firmware</a> (void)</td></tr>
 <tr class="memdesc:gacafedc0813afcec11b7ead2ffddcaf64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Makes our MCU/MPU to jump into its Application Firmware.  <br /></td></tr>
 <tr class="separator:gacafedc0813afcec11b7ead2ffddcaf64"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -197,7 +200,7 @@ In the case that the implementer desires to update either only the Bootloader or
 <dd>
 Only for the first time you install this <a class="el" href="../../d3/dab/group__main.html">Main module</a> Bootloader program into your MCU/MPU, you must do this Firmware installation via the STM32 ST-LINK Utility application provided by the STMicroelectronics Team. In addition, you should also install the Pre-Bootloader (located at an independent project to <a class="el" href="../../d3/dab/group__main.html">Main module</a> , next to the root folder of the <a class="el" href="../../d3/dab/group__main.html">Main module</a> project File Path) also via the STM32 ST-LINK Utility app. After that, all the subsequent times that you want to install either an updated code of this <a class="el" href="../../d3/dab/group__main.html">Main module</a> Bootloader or an Application Firmware (Application Firmware template located at independent project to <a class="el" href="../../d3/dab/group__main.html">Main module</a> , next to the root folder of the <a class="el" href="../../d3/dab/group__main.html">Main module</a> project File Path), then they may now be made and should be made only via the ETX OTA Protocol made by Mortrack. This is strictly necessary for the Application Firmware because the Configuration Settings of the <a class="el" href="../../d7/d86/group__firmware__update__config.html">Firmware Update Configurations sub-module</a> are changed whenever that happens and this is strictly required and expected by the Application Firmware Installations that uses the ETX OTA Protocol.</dd></dl>
 <dl class="section author"><dt>Author</dt><dd>Cesar Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>December 13, 2023. </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>February 09, 2024. </dd></dl>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="ga7a929513ed85bf8b6a636218f5e0fade" name="ga7a929513ed85bf8b6a636218f5e0fade"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga7a929513ed85bf8b6a636218f5e0fade">&#9670;&#160;</a></span>GPIO_is_hm10_default_settings_Pin</h2>
@@ -411,6 +414,44 @@ Only for the first time you install this <a class="el" href="../../d3/dab/group_
 <p>Makes our MCU/MPU to jump into its Application Firmware. </p>
 <dl class="section author"><dt>Author</dt><dd>César Miranda Meza </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>July 16, 2023 </dd></dl>
+
+</div>
+</div>
+<a id="ga6812028b76e97ca8b7ac14de77568da5" name="ga6812028b76e97ca8b7ac14de77568da5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6812028b76e97ca8b7ac14de77568da5">&#9670;&#160;</a></span>HAL_uart_rx_flush()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void HAL_uart_rx_flush </td>
+          <td>(</td>
+          <td class="paramtype">UART_HandleTypeDef *&#160;</td>
+          <td class="paramname"><em>p_huart</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Flushes the Rx of a desired UART. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">p_huart</td><td>Pointer towards the UART from which it is desired to flush its Rx.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Cesar Miranda Meza (<a href="#" onclick="location.href='mai'+'lto:'+'cmi'+'ra'+'nda'+'me'+'za3'+'@h'+'otm'+'ai'+'l.c'+'om'; return false;">cmira<span class="obfuscator">.nosp@m.</span>ndam<span class="obfuscator">.nosp@m.</span>eza3@<span class="obfuscator">.nosp@m.</span>hotm<span class="obfuscator">.nosp@m.</span>ail.c<span class="obfuscator">.nosp@m.</span>om</a>) </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>February 08, 2024. </dd></dl>
+<p><b>Local variable ret:</b> HAL_StatusTypeDef Type variable used to hold the return value of a HAL function type.</p>
+<p><b>Local variable buff:</b> uint8_t Type variable used to temporarily hold an available byte of data from the UART from which it is desired to flush its Rx.</p>
 
 </div>
 </div>
